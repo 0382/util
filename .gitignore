@@ -1,0 +1,5 @@
+.vscode/*
+
+# compile files
+*.o
+*.exe

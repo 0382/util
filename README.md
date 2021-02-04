@@ -9,4 +9,4 @@
 
 ## julia
 
-- [inifile](./julia/inifile)，一个简单的ini读写文件。
+- [inifile](./julia/inifile)，ini文件读写。
