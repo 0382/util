@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <cstdlib>
 #include <sstream>
 #include <algorithm>
@@ -158,7 +159,7 @@ public:
             std::exit(-1);
         }
         std::string value_str = "";
-        if(std::string("string") == type_string<T>::value)  value_str = _value;
+        if constexpr (strcmp("string", type_string<T>::value) == 0) value_str = _value;
         else value_str = std::to_string(_value);
 
         this->options.push_back(
