@@ -1,7 +1,7 @@
 #include "inifile.hpp"
 
 int main(){
-    auto ini = inifile("test.ini");
+    auto ini = util::inifile("test.ini");
     if(!ini.good())
     {
         std::cerr << ini.error() << std::endl;

@@ -16,7 +16,7 @@
 #include <sstream>
 #include <algorithm>
 
-namespace argparse {
+namespace util {
 
 template<typename T> struct type_string
 {
@@ -330,6 +330,6 @@ private:
     }
 };
 
-} // end namespace argparse
+} // end namespace util
 
 #endif // JSHL_ARGPARSE_HPP

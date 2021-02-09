@@ -15,6 +15,8 @@
 #include <fstream>
 #include <algorithm>
 
+namespace util{
+
 using std::string;
 using std::vector;
 
@@ -290,5 +292,7 @@ private:
         return pos;
     }
 };
+
+} // end namespace util
 
 #endif // INIFILE_HPP

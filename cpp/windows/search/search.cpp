@@ -3,7 +3,7 @@
 
 int main(int argc, char const *argv[])
 {
-    auto args = argparse::argparser("search files in command line (only for windows)");
+    auto args = util::argparser("search files in command line (only for windows)");
     args.set_program_name("search")
         .add_option<std::string>("-d", "--dir", "sepcify directory", ".")
         .add_argument("pattern", "search pattern")

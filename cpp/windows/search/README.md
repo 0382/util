@@ -2,7 +2,7 @@
 
 ## 编译
 
-需要使用本仓库中的[argparse](../argparse)头文件。
+需要使用本仓库中的[argparse](../../argparse)头文件。
 
 ## 使用
 

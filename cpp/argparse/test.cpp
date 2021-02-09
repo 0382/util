@@ -2,7 +2,7 @@
 
 int main(int argc, char const *argv[])
 {
-    auto args = argparse::argparser("A quantum calculation program");
+    auto args = util::argparser("A quantum calculation program");
     args.set_program_name("test")
         .add_option("-o", "--openmp", "use openmp or not")
         .add_option("-m", "--mpi", "use mpi or not")
