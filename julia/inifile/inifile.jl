@@ -4,7 +4,7 @@
 
 mutable struct IniItem
     key::String
-    value::Union{Bool, Int64, Float64, String, Nothing}
+    value::Union{Bool,Int64,Float64,String,Nothing}
 end
 
 mutable struct IniSection
@@ -64,11 +64,11 @@ end
 
 function getValue(ini::IniFile, section::String, key::String)::Union{Bool,Int64,Float64,String}
     try
-        err_secname = section=="" ? "(default)" : section
-        pos = findfirst(x->x.name==section, ini.sections)
+        err_secname = section == "" ? "(default)" : section
+        pos = findfirst(x -> x.name == section, ini.sections)
         pos === nothing && throw(KeyError("no section '$err_secname'"))
         sec::IniSection = ini.sections[pos]
-        pos = findfirst(x->x.key==key, sec.items)
+        pos = findfirst(x -> x.key == key, sec.items)
         pos === nothing && throw(KeyError("no key '$key' in section '$err_secname'"))
         return sec.items[pos].value
     catch err
@@ -79,7 +79,7 @@ end
 
 getString(ini::IniFile, section::String, key::String) = getValue(ini, section, key)::String
 getBool(ini::IniFile, section::String, key::String) = getValue(ini, section, key)::Bool
-getInt(ini::IniFile, section::String, key::String) = getValue(ini,section,key)::Int64
+getInt(ini::IniFile, section::String, key::String) = getValue(ini, section, key)::Int64
 getFloat(ini::IniFile, section::String, key::String) = getValue(ini, section, key)::Float64
 
 getValue(ini::IniFile, key::String) = getValue(ini, "", key)
@@ -98,7 +98,7 @@ Base.show(io::IO, ini::IniFile) = begin
 end
 
 function saveAs(ini::IniFile, fname::AbstractString)
-    open(fname,"w") do io
+    open(fname, "w") do io
         print(io, ini)
     end
 end
@@ -108,7 +108,7 @@ function remove_comment(line::String)::String
     rl = line[:]
     for c in ["#", ";", "//"]
         pos = findfirst(c, rl)
-        pos === nothing || (rl = rl[1:pos.start-1])
+        pos === nothing || (rl = rl[1:pos.start - 1])
     end
     return rl
 end
@@ -117,8 +117,8 @@ end
 function build_item!(line::AbstractString, it::IniItem)
     pos = findfirst('=', line)
     pos === nothing && return false
-    it.key = strip(line[1:pos-1], [' ', '\'', '\"'])
-    temp::String = strip(line[pos+1:end], [' ', '\'', '\"'])
+    it.key = strip(line[1:pos - 1], [' ', '\'', '\"'])
+    temp::String = strip(line[pos + 1:end], [' ', '\'', '\"'])
     it.value = tryparse(Bool, temp)
     it.value === nothing || return true
     it.value = tryparse(Int64, temp)

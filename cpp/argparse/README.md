@@ -6,7 +6,7 @@ Parse command-line arguments.
 
 ```c++
 // initialize the program with a description
-auto args = argparse::argparser("A quantum calculation program");
+auto args = util::argparser("A quantum calculation program");
 
 // you can set program name, if not the `argv[0]` is used as default
 args.set_program_name("test")

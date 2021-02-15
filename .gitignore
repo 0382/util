@@ -1,5 +1,6 @@
 .vscode/*
 *test*
+compile_flags.txt
 
 # compile files
 *.o
