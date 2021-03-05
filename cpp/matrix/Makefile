@@ -1,5 +1,5 @@
 CPPC = g++
-CPP_FLAGS = -std=c++17
+CPP_FLAGS = -std=c++17 -g
 CPP_INC_PATH = ../io/
 
 main.exe : main.o matrixfun.o

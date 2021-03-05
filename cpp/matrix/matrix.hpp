@@ -8,6 +8,7 @@
 #define UTIL_MATRIX_HPP
 
 #include "easyprint.hpp"
+#include <iomanip>
 #include <tuple>
 
 namespace util
@@ -174,6 +175,31 @@ template <typename T = double> class Matrix
         _col = col;
     }
 
+    // 比较算符
+    friend bool operator==(const Matrix &ma, const Matrix &mb)
+    {
+        if (ma.size() != mb.size())
+            return false;
+        for (std::size_t i = 0; i < ma.total_size(); ++i)
+        {
+            if (ma._data[i] != mb._data[i])
+                return false;
+        }
+        return true;
+    }
+
+    friend bool approx(const Matrix &ma, const Matrix &mb, value_type eps)
+    {
+        if (ma.size() != mb.size())
+            return false;
+        for (std::size_t i = 0; i < ma.total_size(); ++i)
+        {
+            if (std::abs(ma._data[i] - mb._data[i]) > eps)
+                return false;
+        }
+        return true;
+    }
+
     // 一元运算符
     friend Matrix operator+(const Matrix &m)
     {
@@ -251,7 +277,7 @@ template <typename T = double> class Matrix
             {
                 for (std::size_t j = 0; j < mb.cols(); ++j)
                 {
-                    mc._data[i * mc._col + j] = ma(i, k) * mb(k, j);
+                    mc._data[i * mc._col + j] += ma(i, k) * mb(k, j);
                 }
             }
         }
@@ -314,7 +340,7 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Matrix<T>
     for (std::size_t i = 0; i < m.rows(); ++i)
     {
         for (std::size_t j = 0; j < m.cols(); ++j)
-            os << m(i, j) << '\t';
+            os << std::setw(10) << m(i, j);
         os << '\n';
     }
     return os;
@@ -343,7 +369,7 @@ template <typename T> T trace(const Matrix<T> &m)
 }
 
 // 转置
-template <typename T> T transpose(const Matrix<T> &m)
+template <typename T> Matrix<T> transpose(const Matrix<T> &m)
 {
     Matrix<T> mt(m.cols(), m.row());
     for (std::size_t i = 0; i < m.rows(); ++i)
