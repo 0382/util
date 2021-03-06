@@ -39,16 +39,11 @@ class inifile
     // 一个ini段落（以`[]`指示的称为段落）
     struct IniSection
     {
-        IniSection(string n) : name(std::move(n))
-        {
-        }
+        IniSection(string n) : name(std::move(n)) {}
         string name;
         vector<IniItem> items;
 
-        bool has_key(const string &key)
-        {
-            return find_key(key) != items.cend();
-        }
+        bool has_key(const string &key) { return find_key(key) != items.cend(); }
 
         string get_string(const string &key)
         {
@@ -94,14 +89,8 @@ class inifile
             }
         }
 
-        void set_int(const string &key, const int64_t &value)
-        {
-            set_value<int64_t>(key, value);
-        }
-        void set_double(const string &key, const double &value)
-        {
-            set_value<double>(key, value);
-        }
+        void set_int(const string &key, const int64_t &value) { set_value<int64_t>(key, value); }
+        void set_double(const string &key, const double &value) { set_value<double>(key, value); }
 
         void set_bool(const string &key, const bool &value)
         {
@@ -134,7 +123,8 @@ class inifile
             return pos;
         }
 
-        template <typename T> void set_value(const string &key, const T &value)
+        template <typename T>
+        void set_value(const string &key, const T &value)
         {
             auto pos = find_key(key);
             if (pos == items.end())
@@ -201,22 +191,13 @@ class inifile
     };
 
     // ini文件打开是否成功
-    bool good() const
-    {
-        return this->_good;
-    }
+    bool good() const { return this->_good; }
 
     // 出错时的错误信息
-    string error() const
-    {
-        return this->msg;
-    }
+    string error() const { return this->msg; }
 
     // 输出到控制台
-    void show() const
-    {
-        this->print(std::cout);
-    }
+    void show() const { this->print(std::cout); }
 
     // 保存到文件
     void save_as(const string &fname) const
@@ -227,51 +208,24 @@ class inifile
     }
 
     // 获取其中一个 section
-    IniSection &section(const string &name = "")
-    {
-        return *check_section(name);
-    }
+    IniSection &section(const string &name = "") { return *check_section(name); }
 
     // 提供从默认的section中获取value
-    string get_string(const string &key)
-    {
-        return section("").get_string(key);
-    }
+    string get_string(const string &key) { return section("").get_string(key); }
 
-    int64_t get_int(const string &key)
-    {
-        return section("").get_int(key);
-    }
+    int64_t get_int(const string &key) { return section("").get_int(key); }
 
-    double get_double(const string &key)
-    {
-        return section("").get_double(key);
-    }
+    double get_double(const string &key) { return section("").get_double(key); }
 
-    bool get_bool(const string &key)
-    {
-        return section("").get_bool(key);
-    }
+    bool get_bool(const string &key) { return section("").get_bool(key); }
 
-    void set_string(const string &key, const string &value)
-    {
-        section("").set_string(key, value);
-    }
+    void set_string(const string &key, const string &value) { section("").set_string(key, value); }
 
-    void set_int(const string &key, const int64_t &value)
-    {
-        section("").set_int(key, value);
-    }
+    void set_int(const string &key, int64_t value) { section("").set_int(key, value); }
 
-    void set_double(const string &key, const double &value)
-    {
-        section("").set_double(key, value);
-    }
+    void set_double(const string &key, double value) { section("").set_double(key, value); }
 
-    void set_bool(const string &key, const bool &value)
-    {
-        section("").set_bool(key, value);
-    }
+    void set_bool(const string &key, bool value) { section("").set_bool(key, value); }
 
     // 一些有用的函数
   private:

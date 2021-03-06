@@ -14,7 +14,8 @@
 namespace util
 {
 
-template <typename T = double> class Matrix
+template <typename T = double>
+class Matrix
 {
   public:
     using value_type = T;
@@ -37,8 +38,7 @@ template <typename T = double> class Matrix
     }
     Matrix(std::tuple<std::size_t, std::size_t> _size, value_type value = 0)
         : Matrix(std::get<0>(_size), std::get<1>(_size), value)
-    {
-    }
+    {}
     Matrix(const Matrix &m)
     {
         _row = m._row;
@@ -54,6 +54,8 @@ template <typename T = double> class Matrix
         _row = m._row;
         _col = m._col;
         _data = m._data;
+        m._row = 0;
+        m._col = 0;
         m._data = nullptr;
     }
     Matrix &operator=(const Matrix &m)
@@ -74,21 +76,20 @@ template <typename T = double> class Matrix
         if (&m == this)
             return *this;
         this->clear();
-        _row = m._row;
-        _col = m._col;
-        _data = m._data;
-        m._data = nullptr;
+        swap(*this, m);
         return *this;
     }
-    ~Matrix()
-    {
-        this->clear();
-    }
+    ~Matrix() { this->clear(); }
 
     void clear()
     {
-        delete[] _data;
-        _data = nullptr;
+        if (_data != nullptr)
+        {
+            _row = 0;
+            _col = 0;
+            delete[] _data;
+            _data = nullptr;
+        }
     }
 
     void set_value(std::initializer_list<value_type> list)
@@ -103,12 +104,10 @@ template <typename T = double> class Matrix
         }
     }
 
-    explicit operator bool()
-    {
-        return this->_data != nullptr;
-    }
+    explicit operator bool() { return this->_data != nullptr; }
 
-    template <typename U> operator Matrix<U>()
+    template <typename U>
+    operator Matrix<U>()
     {
         Matrix<U> mu(this->size());
         for (std::size_t i = 0; i < this->total_size(); ++i)
@@ -118,46 +117,21 @@ template <typename T = double> class Matrix
         return mu;
     }
 
-    std::size_t rows() const
-    {
-        return _row;
-    }
-    std::size_t cols() const
-    {
-        return _col;
-    }
-
-    std::tuple<std::size_t, std::size_t> size() const
-    {
-        return std::make_tuple(_row, _col);
-    }
-
-    std::size_t total_size() const
-    {
-        return _row * _col;
-    }
+    // 矩阵大小信息
+    std::size_t rows() const { return _row; }
+    std::size_t cols() const { return _col; }
+    std::tuple<std::size_t, std::size_t> size() const { return std::make_tuple(_row, _col); }
+    std::size_t total_size() const { return _row * _col; }
 
     // 笛卡尔坐标索引
-    value_type operator()(std::size_t i, std::size_t j) const
-    {
-        return _data[i * _col + j];
-    }
-    value_type &operator()(std::size_t i, std::size_t j)
-    {
-        return _data[i * _col + j];
-    }
+    value_type operator()(std::size_t i, std::size_t j) const { return _data[i * _col + j]; }
+    value_type &operator()(std::size_t i, std::size_t j) { return _data[i * _col + j]; }
 
     // 线性索引
-    value_type operator()(std::size_t n) const
-    {
-        return _data[n];
-    }
+    value_type operator()(std::size_t n) const { return _data[n]; }
+    value_type &operator()(std::size_t n) { return _data[n]; }
 
-    value_type &operator()(std::size_t n)
-    {
-        return _data[n];
-    }
-
+    // 改变矩阵大小
     void resize(std::size_t row, std::size_t col)
     {
         if (row <= 0 || col <= 0)
@@ -201,10 +175,7 @@ template <typename T = double> class Matrix
     }
 
     // 一元运算符
-    friend Matrix operator+(const Matrix &m)
-    {
-        return m;
-    }
+    friend Matrix operator+(const Matrix &m) { return m; }
 
     friend Matrix operator-(const Matrix &m)
     {
@@ -335,7 +306,8 @@ template <typename T = double> class Matrix
 };
 
 // 输出到流
-template <typename T> std::ostream &operator<<(std::ostream &os, const Matrix<T> &m)
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const Matrix<T> &m)
 {
     for (std::size_t i = 0; i < m.rows(); ++i)
     {
@@ -347,7 +319,8 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Matrix<T>
 }
 
 // 单位矩阵
-template <typename T> Matrix<T> eye(std::size_t n)
+template <typename T>
+Matrix<T> eye(std::size_t n)
 {
     Matrix<T> m(n, n);
     for (std::size_t i = 0; i < n; ++i)
@@ -358,7 +331,8 @@ template <typename T> Matrix<T> eye(std::size_t n)
 }
 
 // 求迹
-template <typename T> T trace(const Matrix<T> &m)
+template <typename T>
+T trace(const Matrix<T> &m)
 {
     T sum = 0;
     for (std::size_t i = 0; i < std::min(m.row(), m.col()); ++i)
@@ -369,7 +343,8 @@ template <typename T> T trace(const Matrix<T> &m)
 }
 
 // 转置
-template <typename T> Matrix<T> transpose(const Matrix<T> &m)
+template <typename T>
+Matrix<T> transpose(const Matrix<T> &m)
 {
     Matrix<T> mt(m.cols(), m.row());
     for (std::size_t i = 0; i < m.rows(); ++i)

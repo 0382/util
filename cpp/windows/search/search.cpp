@@ -1,5 +1,5 @@
-#include "argparse.hpp"
 #include "search.hpp"
+#include "argparse.hpp"
 
 int main(int argc, char const *argv[])
 {

@@ -19,37 +19,44 @@
 namespace util
 {
 
-template <typename T> struct type_string
+template <typename T>
+struct type_string
 {
     static constexpr const char *value = "null";
 };
 
-template <> struct type_string<bool>
+template <>
+struct type_string<bool>
 {
     static constexpr const char *value = "bool";
 };
 
-template <> struct type_string<int>
+template <>
+struct type_string<int>
 {
     static constexpr const char *value = "int";
 };
 
-template <> struct type_string<double>
+template <>
+struct type_string<double>
 {
     static constexpr const char *value = "double";
 };
 
-template <> struct type_string<std::string>
+template <>
+struct type_string<std::string>
 {
     static constexpr const char *value = "string";
 };
 
-template <> struct type_string<const char *>
+template <>
+struct type_string<const char *>
 {
     static constexpr const char *value = "string";
 };
 
-template <typename T> T value_cast(const std::string &s)
+template <typename T>
+T value_cast(const std::string &s)
 {
     std::istringstream iss(s);
     T value;
@@ -57,22 +64,26 @@ template <typename T> T value_cast(const std::string &s)
     return value;
 }
 
-template <> bool value_cast<bool>(const std::string &s)
+template <>
+bool value_cast<bool>(const std::string &s)
 {
     return s != "";
 }
 
-template <> int value_cast<int>(const std::string &s)
+template <>
+int value_cast<int>(const std::string &s)
 {
     return std::stoi(s);
 }
 
-template <> double value_cast<double>(const std::string &s)
+template <>
+double value_cast<double>(const std::string &s)
 {
     return std::stod(s);
 }
 
-template <> std::string value_cast<std::string>(const std::string &s)
+template <>
+std::string value_cast<std::string>(const std::string &s)
 {
     return s;
 }
@@ -82,8 +93,7 @@ struct option
     option(std::string _short, std::string _long, std::string _help, std::string _type, std::string _value)
         : short_str(std::move(_short)), long_str(std::move(_long)), help(std::move(_help)), type(std::move(_type)),
           value(std::move(_value))
-    {
-    }
+    {}
 
     void print_help() const
     {
@@ -112,18 +122,10 @@ struct option
 
 struct argument
 {
-    argument(std::string _name, std::string _help) : name(std::move(_name)), help(std::move(_help))
-    {
-    }
+    argument(std::string _name, std::string _help) : name(std::move(_name)), help(std::move(_help)) {}
 
-    bool has() const
-    {
-        return this->value != "";
-    }
-    void print_help() const
-    {
-        std::cout << std::setw(15) << this->name << "          " << this->help << std::endl;
-    }
+    bool has() const { return this->value != ""; }
+    void print_help() const { std::cout << std::setw(15) << this->name << "          " << this->help << std::endl; }
 
     std::string name;
     std::string help;
@@ -256,7 +258,8 @@ class argparser
         return *this;
     }
 
-    template <typename T> T get_option(const std::string &opt) const
+    template <typename T>
+    T get_option(const std::string &opt) const
     {
         auto pos = this->find_option(opt);
         if (pos == options.cend())

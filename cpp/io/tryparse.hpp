@@ -66,7 +66,8 @@ std::optional<std::enable_if_t<std::is_floating_point_v<T>, T>> _tryparse_real(c
     return value;
 }
 
-template <typename T> std::optional<std::enable_if_t<std::is_arithmetic_v<T>, T>> tryparse(const std::string &str)
+template <typename T>
+std::optional<std::enable_if_t<std::is_arithmetic_v<T>, T>> tryparse(const std::string &str)
 {
     if constexpr (std::is_integral_v<T>)
         return _tryparse_integer<T>(str, 10);

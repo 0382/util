@@ -15,43 +15,55 @@ namespace util
 {
 
 // 普通打印
-template <typename... Args> void print(Args &&... args);
-template <typename T> void print(T &&value)
+template <typename... Args>
+void print(Args &&...args);
+
+template <typename T>
+void print(T &&value)
 {
     std::cout << value;
 }
-template <typename... Args> void print(Args &&... args)
+
+template <typename... Args>
+void print(Args &&...args)
 {
     (print(args), ...);
 }
-template <typename... Args> void println(Args &&... args)
+
+template <typename... Args>
+void println(Args &&...args)
 {
     (print(args), ...);
     std::cout << std::endl;
 }
 
 // 打印一些信息并终止程序
-template <typename... Args> void stop(Args &&... args)
+template <typename... Args>
+void stop(Args &&...args)
 {
     println(args...);
     std::exit(-1);
 }
 
 // 带分隔符的打印
-template <typename T, typename... Args> void sep_print(std::string_view sep, T &&val, Args &&... args);
+template <typename T, typename... Args>
+void sep_print(std::string_view sep, T &&val, Args &&...args);
 
-template <typename T> void sep_print(std::string_view sep, T &&val)
+template <typename T>
+void sep_print(std::string_view sep, T &&val)
 {
     print(val);
 }
 
-template <typename T, typename... Args> void sep_print(std::string_view sep, T &&val, Args &&... args)
+template <typename T, typename... Args>
+void sep_print(std::string_view sep, T &&val, Args &&...args)
 {
     print(val, sep);
     sep_print(sep, args...);
 }
 
-template <typename... Args> void sep_println(std::string_view sep, Args &&... args)
+template <typename... Args>
+void sep_println(std::string_view sep, Args &&...args)
 {
     sep_print(sep, args...);
     std::cout << std::endl;

@@ -12,14 +12,17 @@ namespace util
 // 高斯消元法
 // 第一个参数必须是方阵
 // 第二个参数必须是列矩阵
-matf64 GEM(matf64 A, matf64 b)
+matf64 GEM(const matf64 &_A, const matf64 &_b)
 {
-    if (b.cols() != 1)
+    if (_b.cols() != 1)
         stop("(GEM) b should be a column vector");
-    if (A.rows() != A.cols())
+    if (_A.rows() != _A.cols())
         stop("(GEM) Matrix A should be square matrix");
-    if (A.cols() != b.rows())
+    if (_A.cols() != _b.rows())
         stop("(GEM) Matrix A's columns should be equals to b's rows");
+    // 后面的运算要修改矩阵内部数据
+    auto A = _A;
+    auto b = _b;
     auto size = A.rows();
     // 化为上三角矩阵
     for (std::size_t i = 0; i < size; ++i)
@@ -67,10 +70,11 @@ matf64 GEM(matf64 A, matf64 b)
 // 实对称矩阵的 cholesky 分解
 // 参数是一个实对称矩阵 A, 分解为 H^\dagger H
 // 分解的结果是下三角矩阵 H^\dagger
-matf64 cholesky(matf64 A)
+matf64 cholesky(const matf64 &_A)
 {
-    if (A.rows() != A.cols())
+    if (_A.rows() != _A.cols())
         stop("(cholesky) Matrix A should be a square matrix");
+    auto A = _A;
     A(0, 0) = std::sqrt(A(0, 0));
     for (std::size_t i = 1; i < A.rows(); ++i)
     {

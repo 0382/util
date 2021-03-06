@@ -15,10 +15,7 @@ bool is_trivial_diractory(WIN32_FIND_DATAA &file)
 }
 
 // 判断是否是文件夹
-bool is_directory(WIN32_FIND_DATAA &file)
-{
-    return file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
-}
+bool is_directory(WIN32_FIND_DATAA &file) { return file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY; }
 
 // 打印正则匹配结果
 std::ostream &operator<<(std::ostream &os, const std::smatch &sm)

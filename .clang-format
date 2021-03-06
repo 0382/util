@@ -6,26 +6,27 @@ AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-AlignEscapedNewlines: Right
+AlignEscapedNewlines: Left
 AlignOperands:   true
 AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: true
 AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: Never
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
 AllowShortLambdasOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: MultiLine
+AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:
-  AfterCaseLabel:  false
+  AfterCaseLabel:  true
   AfterClass:      true
   AfterControlStatement: true
   AfterEnum:       true
@@ -33,13 +34,15 @@ BraceWrapping:
   AfterNamespace:  true
   AfterObjCDeclaration: true
   AfterStruct:     true
-  AfterUnion:      false
+  AfterUnion:      true
   AfterExternBlock: true
   BeforeCatch:     true
   BeforeElse:      true
+  BeforeLambdaBody: true
+  BeforeWhile:     true
   IndentBraces:    false
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
   SplitEmptyNamespace: true
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
@@ -66,7 +69,7 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
-IncludeBlocks:   Preserve
+IncludeBlocks:   Merge
 IncludeCategories:
   - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
     Priority:        2
@@ -80,6 +83,7 @@ IncludeCategories:
 IncludeIsMainRegex: '(Test)?$'
 IncludeIsMainSourceRegex: ''
 IndentCaseLabels: false
+IndentExternBlock: NoIndent
 IndentGotoLabels: true
 IndentPPDirectives: None
 IndentWidth:     4
