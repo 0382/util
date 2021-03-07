@@ -8,13 +8,14 @@
 #define UTIL_MATRIX_HPP
 
 #include "easyprint.hpp"
+#include "mymath.hpp"
 #include <iomanip>
 #include <tuple>
 
 namespace util
 {
 
-template <typename T = double>
+template <typename T = double, typename = typename std::enable_if_t<std::is_arithmetic_v<T> | is_complex<T>::value>>
 class Matrix
 {
   public:
@@ -26,7 +27,7 @@ class Matrix
     std::size_t _col;
 
   public:
-    Matrix(std::size_t row, std::size_t col, value_type value = 0) : _row(row), _col(col)
+    Matrix(std::size_t row, std::size_t col = 1, value_type value = 0) : _row(row), _col(col)
     {
         if (row <= 0 || col <= 0)
             stop("(constructor) invalid matrix size: row = ", row, ", col = ", col);
@@ -162,13 +163,20 @@ class Matrix
         return true;
     }
 
-    friend bool approx(const Matrix &ma, const Matrix &mb, value_type eps)
+    friend bool approx(const Matrix &ma, const Matrix &mb, value_type atol = 0)
     {
         if (ma.size() != mb.size())
             return false;
+        if (atol == 0)
+        {
+            auto abs_comp = [](value_type *const x, value_type *const y) { return std::abs(*x) < std::abs(*y); };
+            auto max_a = std::max(ma._data, ma._data + ma.total_size(), abs_comp);
+            auto max_b = std::max(mb._data, mb._data + mb.total_size(), abs_comp);
+            atol = std::sqrt(eps(std::max(std::abs(*max_a), std::abs(*max_b))));
+        }
         for (std::size_t i = 0; i < ma.total_size(); ++i)
         {
-            if (std::abs(ma._data[i] - mb._data[i]) > eps)
+            if (!approx(ma._data[i], mb._data[i], atol))
                 return false;
         }
         return true;
@@ -312,7 +320,7 @@ std::ostream &operator<<(std::ostream &os, const Matrix<T> &m)
     for (std::size_t i = 0; i < m.rows(); ++i)
     {
         for (std::size_t j = 0; j < m.cols(); ++j)
-            os << std::setw(10) << m(i, j);
+            os << std::setw(12) << m(i, j);
         os << '\n';
     }
     return os;
@@ -346,7 +354,7 @@ T trace(const Matrix<T> &m)
 template <typename T>
 Matrix<T> transpose(const Matrix<T> &m)
 {
-    Matrix<T> mt(m.cols(), m.row());
+    Matrix<T> mt(m.cols(), m.rows());
     for (std::size_t i = 0; i < m.rows(); ++i)
     {
         for (std::size_t j = 0; j < m.cols(); ++j)
@@ -355,6 +363,35 @@ Matrix<T> transpose(const Matrix<T> &m)
         }
     }
     return mt;
+}
+
+// 共轭
+template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+Matrix<std::complex<T>> conjugate(const Matrix<std::complex<T>> &m)
+{
+    using value_type = std::complex<T>;
+    Matrix<value_type> mc(m.size());
+    for (std::size_t i = 0; i < m.total_size(); ++i)
+    {
+        mc(i) = std::conj(m(i));
+    }
+    return mc;
+}
+
+// 转置共轭
+template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+Matrix<std::complex<T>> adjoint(const Matrix<std::complex<T>> &m)
+{
+    using value_type = std::complex<T>;
+    Matrix<value_type> mc(m.cols(), m.rows());
+    for (std::size_t i = 0; i < m.rows(); ++i)
+    {
+        for (std::size_t j = 0; j < m.cols(); ++j)
+        {
+            mc(j, i) = std::conj(m(i, j));
+        }
+    }
+    return mc;
 }
 
 } // end namespace util

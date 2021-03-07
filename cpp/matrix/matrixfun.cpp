@@ -56,7 +56,7 @@ matf64 GEM(const matf64 &_A, const matf64 &_b)
         }
     }
     // 反代出结果
-    matf64 x(size, 1); // 保存结果
+    matf64 x(size); // 保存结果
     for (std::size_t i = size - 1; i != std::size_t(-1); --i)
     {
         x(i) = b(i);
@@ -118,7 +118,7 @@ matf64 solve_by_cholesky(const matf64 &A, const matf64 &b)
 
     auto H = cholesky(A);
     std::size_t size = A.rows();
-    matf64 x(size, 1);
+    matf64 x(size);
     // H^\dagger * y = b
     for (std::size_t i = 0; i < size; ++i)
     {
@@ -140,25 +140,29 @@ matf64 solve_by_cholesky(const matf64 &A, const matf64 &b)
 // 三对角矩阵的分解
 // 设定所有的向量长度一致，是为了和教材上的下标一致，其实也没有太大的影响
 // 返回是方程的解
-vecf64 Thomas(vecf64 A, vecf64 B, const vecf64 &C, const vecf64 &b)
+matf64 Thomas(const matf64 &_A, const matf64 &_B, const matf64 &C, const matf64 &b)
 {
+    if (_A.cols() != 1 || _B.cols() != 1 || C.cols() != 1 || b.cols() != 1)
+        stop("(Thomas) all parameters should be column vectors");
     // 分解
-    std::size_t size = A.size();
+    auto A = _A;
+    auto B = _B;
+    std::size_t size = A.rows();
     for (std::size_t i = 1; i < size; ++i)
     {
-        B[i] /= A[i - 1];
-        A[i] -= B[i] * C[i - 1];
+        B(i) /= A(i - 1);
+        A(i) -= B(i) * C(i - 1);
     }
     // 反代
-    vecf64 x(size);
+    matf64 x(size);
     // Ly = b
-    x[0] = b[0];
+    x(0) = b(0);
     for (std::size_t i = 1; i < size; ++i)
-        x[i] = b[i] - B[i] * x[i - 1];
+        x(i) = b(i) - B(i) * x(i - 1);
     // Ux = y
-    x[size - 1] = x[size - 1] / A[size - 1];
+    x(size - 1) = x(size - 1) / A(size - 1);
     for (std::size_t i = size - 2; i != std::size_t(-1); --i)
-        x[i] = (x[i] - x[i + 1] * C[i]) / A[i];
+        x(i) = (x(i) - x(i + 1) * C(i)) / A(i);
     return x;
 }
 
