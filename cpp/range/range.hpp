@@ -75,7 +75,7 @@ class StepRange
             return;
         }
         auto temp = (_end - _begin) % _step;
-        if (!temp)
+        if (temp != 0)
         {
             _end += _step - temp;
         }

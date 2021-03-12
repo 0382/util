@@ -91,12 +91,12 @@ void test_integral()
 {
     auto f = [](double x) { return std::sqrt(4 - x * x); };
     std::cout << std::setprecision(18);
-    std::cout << integral<double>(0, 2, f) << std::endl;
-    std::cout << integral<double>(0, 2, f, {intlevel::lv2}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {intlevel::lv3}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {intlevel::lv4}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {intlevel::lv5}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {intlevel::lv6}) << std::endl;
+    println(integral<double>(0, 2, f));
+    println(integral<double>(0, 2, f, {intlevel::lv2}));
+    println(integral<double>(0, 2, f, {intlevel::lv3}));
+    println(integral<double>(0, 2, f, {intlevel::lv4}));
+    println(integral<double>(0, 2, f, {intlevel::lv5}));
+    println(integral<double>(0, 2, f, {intlevel::lv6}));
 }
 
 void test_interpolation()
