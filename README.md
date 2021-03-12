@@ -6,7 +6,7 @@
 
 - [argparse](./cpp/argparse)，一个简单的命令行参数解析库。
 - [inifile](./cpp/inifile)，一个简单的ini文件读写库。
-- [range](./range)，模仿python定义的range函数。
+- [range](./cpp/range)，模仿python定义的range函数。
 - [io](./cpp/io)，定义了输入输出和字符串相关的一些函数。
 - [windows](./cpp/windows)，windows系统相关的一些东西。
 - [matrix](./cpp/matrix)，计算物理作业相关代码。
