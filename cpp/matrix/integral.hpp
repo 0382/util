@@ -22,7 +22,7 @@ namespace util
  *  6   41,216,27,272,27,216,41    840    Weddle规则
  */
 
-enum class IntLevel
+enum class intlevel
 {
     lv1 = 1,
     lv2,
@@ -41,12 +41,12 @@ enum class IntLevel
 // 一个是使用的积分近似方法，默认是梯形法则
 struct IntOptions
 {
-    IntLevel level;
+    intlevel level;
     int Npoints;
-    IntOptions() : level(IntLevel::lv1), Npoints(10000) {}
-    IntOptions(IntLevel _level, int _Npoints) : level(_level), Npoints(_Npoints) {}
-    IntOptions(IntLevel _level) : IntOptions(_level, 10000) {}
-    IntOptions(int _Npoints) : IntOptions(IntLevel::lv1, _Npoints) {}
+    IntOptions() : level(intlevel::lv1), Npoints(10000) {}
+    IntOptions(intlevel _level, int _Npoints) : level(_level), Npoints(_Npoints) {}
+    IntOptions(intlevel _level) : IntOptions(_level, 10000) {}
+    IntOptions(int _Npoints) : IntOptions(intlevel::lv1, _Npoints) {}
 };
 
 namespace detail
@@ -179,20 +179,16 @@ template <typename value_type = double, typename = typename std::enable_if_t<std
 value_type integral(value_type a, value_type b, std::function<value_type(value_type)> f,
                     const IntOptions &opts = IntOptions())
 {
-    if (opts.level == IntLevel::lv1)
-        return detail::integral_lv1(a, b, f, opts.Npoints);
-    else if (opts.level == IntLevel::lv2)
-        return detail::integral_lv2(a, b, f, opts.Npoints);
-    else if (opts.level == IntLevel::lv3)
-        return detail::integral_lv3(a, b, f, opts.Npoints);
-    else if (opts.level == IntLevel::lv4)
-        return detail::integral_lv4(a, b, f, opts.Npoints);
-    else if (opts.level == IntLevel::lv5)
-        return detail::integral_lv5(a, b, f, opts.Npoints);
-    else if (opts.level == IntLevel::lv6)
-        return detail::integral_lv6(a, b, f, opts.Npoints);
-    else
-        return std::nan("");
+    switch (opts.level)
+    {
+    case intlevel::lv1: return detail::integral_lv1(a, b, f, opts.Npoints);
+    case intlevel::lv2: return detail::integral_lv2(a, b, f, opts.Npoints);
+    case intlevel::lv3: return detail::integral_lv3(a, b, f, opts.Npoints);
+    case intlevel::lv4: return detail::integral_lv4(a, b, f, opts.Npoints);
+    case intlevel::lv5: return detail::integral_lv5(a, b, f, opts.Npoints);
+    case intlevel::lv6: return detail::integral_lv6(a, b, f, opts.Npoints);
+    default: return std::nan("");
+    }
 }
 
 } // end namespace util

@@ -9,7 +9,12 @@
 - [io](./cpp/io)，定义了输入输出和字符串相关的一些函数。
 - [windows](./cpp/windows)，windows系统相关的一些东西。
 - [matrix](./cpp/matrix)，计算物理作业相关代码
+- [snippet](./cpp/snippet)，一些乱七八糟的代码片段
 
 ## Julia
 
 - [inifile](./julia/inifile)，ini文件读写。
+
+## latex
+
+- [latex](./latex)，定义的一些常用的命令。

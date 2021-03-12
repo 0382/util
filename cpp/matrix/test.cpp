@@ -1,4 +1,5 @@
 #include "integral.hpp"
+#include "interpolation.hpp"
 #include "matrixfun.hpp"
 #include <random>
 
@@ -91,11 +92,38 @@ void test_integral()
     auto f = [](double x) { return std::sqrt(4 - x * x); };
     std::cout << std::setprecision(18);
     std::cout << integral<double>(0, 2, f) << std::endl;
-    std::cout << integral<double>(0, 2, f, {IntLevel::lv2}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {IntLevel::lv3}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {IntLevel::lv4}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {IntLevel::lv5}) << std::endl;
-    std::cout << integral<double>(0, 2, f, {IntLevel::lv6}) << std::endl;
+    std::cout << integral<double>(0, 2, f, {intlevel::lv2}) << std::endl;
+    std::cout << integral<double>(0, 2, f, {intlevel::lv3}) << std::endl;
+    std::cout << integral<double>(0, 2, f, {intlevel::lv4}) << std::endl;
+    std::cout << integral<double>(0, 2, f, {intlevel::lv5}) << std::endl;
+    std::cout << integral<double>(0, 2, f, {intlevel::lv6}) << std::endl;
+}
+
+void test_interpolation()
+{
+    // 构造一个 9 阶多项式
+    auto f = [](double x)
+    {
+        double y = std::rand() / double(RAND_MAX);
+        for (int i = 1; i < 9; ++i)
+        {
+            y = std::fma(x, y, std::rand() / double(RAND_MAX));
+        }
+        return y;
+    };
+    double Xn[10], Yn[10];
+    for (int i = 0; i < 10; ++i)
+    {
+        Xn[i] = std::rand() / double(RAND_MAX) + i;
+        Yn[i] = f(Xn[i]);
+    }
+    auto xlag = interpolation<double>(5., Xn, Yn, 10);
+    auto xnew = interpolation<double>(5., Xn, Yn, 10, interp::Newton);
+    auto xnev = interpolation<double>(5., Xn, Yn, 10, interp::Neville);
+    if (approx(xlag, xnew) && approx(xlag, xnev))
+        println("test interpolation passed");
+    else
+        println("test interpolation failed");
 }
 
 int main(int argc, char const *argv[])
@@ -108,5 +136,9 @@ int main(int argc, char const *argv[])
         test_Thomas(i);
     }
     test_integral();
+    for (int i = 1; i <= 10; ++i)
+    {
+        test_interpolation();
+    }
     return 0;
 }

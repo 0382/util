@@ -1,6 +1,6 @@
 /**
- * author: 0.382
- * description: parse command line args
+ * @author: 0.382
+ * @description: parse command line args
  * */
 
 #pragma once
