@@ -63,6 +63,7 @@ void test_cholesky(std::size_t size)
         println("test cholesky failed");
 }
 
+// Thomas 算法解方程测试
 void test_Thomas(std::size_t size)
 {
     matf64 M(size, size);
@@ -99,6 +100,7 @@ void test_integral()
     println(integral<double>(0, 2, f, {intlevel::lv6}));
 }
 
+// 插值法算法测试
 void test_interpolation()
 {
     // 构造一个 9 阶多项式

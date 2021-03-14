@@ -162,7 +162,7 @@ class argparser
     }
 
     template <typename T>
-    argparser &add_option(const std::string &_short, const std::string &_long, const std::string &_help, T _value)
+    argparser &add_option(const std::string &_short, const std::string &_long, const std::string &_help, T &&_value)
     {
         auto pos_short = this->find_option_short(_short);
         auto pos_long = this->find_option_long(_long);
@@ -293,22 +293,25 @@ class argparser
     std::vector<option> options;
     std::vector<argument> arguments;
 
-    auto find_argument(const std::string &key) const -> std::vector<argument>::const_iterator
+    using argument_iterator = std::vector<argument>::const_iterator;
+    using option_iterator = std::vector<option>::const_iterator;
+
+    auto find_argument(const std::string &key) const -> argument_iterator
     {
         return std::find_if(this->arguments.cbegin(), this->arguments.cend(),
                             [&key](const argument &arg) { return arg.name == key; });
     }
-    auto find_option_short(const std::string &key) const -> std::vector<option>::const_iterator
+    auto find_option_short(const std::string &key) const -> option_iterator
     {
         return std::find_if(this->options.cbegin(), this->options.cend(),
                             [&key](const option &opt) { return opt.short_str == key; });
     }
-    auto find_option_long(const std::string &key) const -> std::vector<option>::const_iterator
+    auto find_option_long(const std::string &key) const -> option_iterator
     {
         return std::find_if(this->options.cbegin(), this->options.cend(),
                             [&key](const option &opt) { return opt.long_str == key; });
     }
-    auto find_option(const std::string &key) const -> std::vector<option>::const_iterator
+    auto find_option(const std::string &key) const -> option_iterator
     {
         return std::find_if(this->options.cbegin(), this->options.cend(),
                             [&key](const option &opt) { return opt.long_str == key || opt.short_str == key; });
