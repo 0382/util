@@ -8,10 +8,9 @@
 #ifndef UTIL_STATISTICS_HPP
 #define UTIL_STATISTICS_HPP
 
-#include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <numeric>
-#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -24,12 +23,28 @@ struct statistics_draft
     double mean;
     double variance;
     double stddev;
+
+    friend std::ostream &operator<<(std::ostream &os, const statistics_draft &dft)
+    {
+        os << "sum = " << dft.sum << "\n";
+        os << "mean = " << dft.mean << "\n";
+        os << "variance = " << dft.variance << "\n";
+        os << "stddev = " << dft.stddev << "\n";
+        return os;
+    }
 };
 
 template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
 T sum(const std::vector<T> &data)
 {
     return std::accumulate(data.cbegin(), data.cend(), static_cast<T>(0));
+}
+
+template <typename InputIterator, typename T = std::remove_cv_t<std::remove_reference_t<decltype(*InputIterator())>>,
+          typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+T sum(InputIterator first, InputIterator last)
+{
+    return std::accumulate(first, last, static_cast<T>(0));
 }
 
 template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
@@ -39,10 +54,17 @@ double mean(const std::vector<T> &data)
     {
         return 0.;
     }
-    else
+    return sum(data) / static_cast<double>(data.size());
+}
+
+template <typename InputIterator>
+double mean(InputIterator first, InputIterator last)
+{
+    if (first == last)
     {
-        return sum(data) / static_cast<double>(data.size());
+        return 0;
     }
+    return sum(first, last) / static_cast<double>(last - first);
 }
 
 // variance(data, dof)
@@ -64,6 +86,20 @@ double variance(const std::vector<T> &data, int dof = 0)
     return addup / (data.size() - dof);
 }
 
+template <typename InputIterator>
+double variance(InputIterator first, InputIterator last, int dof = 0)
+{
+    using T = std::remove_cv_t<std::remove_reference_t<decltype(*first)>>;
+    static_assert(std::is_arithmetic_v<T>, "statistics only for arithmetic type");
+    if (last - first <= dof)
+    {
+        return -1;
+    }
+    double xbar = mean(first, last);
+    double addup = std::accumulate(first, last, 0., [&xbar](double a, T b) { return a + (b - xbar) * (b - xbar); });
+    return addup / ((last - first) - dof);
+}
+
 // standard deviation, parameters are similar to variance
 template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
 double stddev(const std::vector<T> &data, int dof = 0)
@@ -73,6 +109,16 @@ double stddev(const std::vector<T> &data, int dof = 0)
         return -1;
     }
     return std::sqrt(variance(data, dof));
+}
+
+template <typename InputIterator>
+double stddev(InputIterator first, InputIterator last, int dof = 0)
+{
+    if (last - first <= dof)
+    {
+        return -1;
+    }
+    return std::sqrt(variance(first, last, dof));
 }
 
 template <typename T, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
@@ -87,6 +133,24 @@ statistics_draft draft(const std::vector<T> &data, int dof = 0)
     double _mean = _sum / N;
     double addup = std::accumulate(data.cbegin(), data.cend(), 0.,
                                    [&_mean](double a, T b) { return a + (b - _mean) * (b - _mean); });
+    double _var = addup / (N - dof);
+    double _stddev = std::sqrt(_var);
+    return statistics_draft{_sum, _mean, _var, _stddev};
+}
+
+template <typename InputIterator>
+statistics_draft draft(InputIterator first, InputIterator last, int dof = 0)
+{
+    using T = std::remove_cv_t<std::remove_reference_t<decltype(*first)>>;
+    static_assert(std::is_arithmetic_v<T>, "statistics only for arithmetic type");
+    if (last - first <= dof)
+    {
+        return statistics_draft{-1, -1, -1, -1};
+    }
+    int64_t N = last - first;
+    double _sum = sum(first, last);
+    double _mean = _sum / N;
+    double addup = std::accumulate(first, last, 0., [&_mean](double a, T b) { return a + (b - _mean) * (b - _mean); });
     double _var = addup / (N - dof);
     double _stddev = std::sqrt(_var);
     return statistics_draft{_sum, _mean, _var, _stddev};

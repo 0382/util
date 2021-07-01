@@ -12,10 +12,6 @@ int main(int argc, char const *argv[])
     std::cout << "variance = " << variance(x) << "\n";
     std::cout << "sample variance = " << variance(x, 1) << "\n";
 
-    auto dft = draft(x);
-    std::cout << "sum = " << dft.sum << "\n";
-    std::cout << "mean = " << dft.mean << "\n";
-    std::cout << "variance = " << dft.variance << "\n";
-    std::cout << "stddev = " << dft.stddev << "\n";
+    std::cout << draft(x.cbegin(), x.cend(), 1);
     return 0;
 }
