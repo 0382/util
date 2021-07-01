@@ -1,6 +1,7 @@
 /**
- * @author:      0.382
+ * @author: 0.382
  * @description: ini文件读取和修改
+ * @url: https://github.com/0382/util/tree/main/cpp/inifile
  */
 
 #pragma once

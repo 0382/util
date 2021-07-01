@@ -11,6 +11,7 @@
 - [windows](./cpp/windows)，windows系统相关的一些东西。
 - [matrix](./cpp/matrix)，计算物理作业相关代码。
 - [snippet](./cpp/snippet)，一些乱七八糟的代码片段。
+- [statistics](./cpp/statistics)，统计相关的代码。
 
 ## Julia
 
