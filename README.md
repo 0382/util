@@ -13,10 +13,10 @@
 - [snippet](./cpp/snippet)，一些乱七八糟的代码片段。
 - [statistics](./cpp/statistics)，统计相关的代码。
 
-## Julia
-
-- [inifile](./julia/inifile)，ini文件读写。
-
 ## latex
 
 - [latex](./latex)，定义的一些常用的命令。
+
+## Julia
+
+转移到[MyTools](https://github.com/0382/MyTools.jl)，自己安装自己用，真好玩。

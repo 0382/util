@@ -1,6 +1,7 @@
 .vscode/*
 cpp/test/
 compile_flags.txt
+temp*
 
 # compile files
 *.o
