@@ -1,17 +1,18 @@
 /**
  * @author: 0.382
- * @description: parse command line args
- * @url: https://github.com/0382/util/tree/main/cpp/atom-name
+ * @description: 元素周期表和原子核物理相关
+ * @url: https://github.com/0382/util/tree/main/cpp/nucleus
  */
 
 #pragma once
-#ifndef UTIL_ATOM_NAME_HPP
-#define UTIL_ATOM_NAME_HPP
+#ifndef UTIL_NUCLEUS_HPP
+#define UTIL_NUCLEUS_HPP
 
 #include <algorithm>
 #include <iostream>
 #include <regex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace util
@@ -244,21 +245,174 @@ inline Element find_element(const std::string &name)
     return ele;
 }
 
-struct NuclearShell
+inline const std::unordered_map<int, char> l_name_map = {{0, 's'},  {1, 'p'},  {2, 'd'}, {3, 'f'}, {4, 'g'},
+                                                         {5, 'h'},  {6, 'i'},  {7, 'j'}, {8, 'k'}, {9, 'l'},
+                                                         {10, 'm'}, {11, 'n'}, {12, 'o'}};
+
+// j-shceme 下的单粒子轨道。该结构体以及下面的`MOrbit`中，
+// 总角动量和同位旋相关量都是使用物理上量子数的两倍来表示，以回避半整数
+struct JOrbit
 {
-    int core;
-    int valence;
+    int n;
+    int l;
+    int j;
+    int tz;
+    JOrbit(int _n, int _l, int _j, int _tz) : n(_n), l(_l), j(_j), tz(_tz) {}
 };
 
-constexpr auto p_shell = NuclearShell{2, 6};
-constexpr auto sd_shell = NuclearShell{8, 12};
-constexpr auto pf_shell = NuclearShell{20, 20};
+struct MOrbit
+{
+    int n;
+    int l;
+    int j;
+    int m;
+    int tz;
+    MOrbit(int _n, int _l, int _j, int _m, int _tz) : n(_n), l(_l), j(_j), m(_m), tz(_tz) {}
+    MOrbit(JOrbit orb, int _m) : n(orb.n), l(orb.l), j(orb.j), m(_m), tz(orb.tz) {}
+};
+
+inline std::string name(const JOrbit &orb)
+{
+    char nucleon_type = orb.tz == -1 ? 'p' : 'n';
+    auto pos = l_name_map.find(orb.l);
+    char l_name = pos == l_name_map.cend() ? 'x' : pos->second;
+    return nucleon_type + std::to_string(orb.n) + l_name + std::to_string(orb.j) + "/2";
+}
+
+struct NuclearShell
+{
+    std::vector<JOrbit> orbits;
+    NuclearShell(std::vector<JOrbit> _orbits) : orbits(std::move(_orbits)) {}
+    // 获得壳内所有的j-scheme轨道
+    std::vector<JOrbit> j_orbits() const { return orbits; }
+    // 获得壳内所有的m-scheme轨道
+    std::vector<MOrbit> m_orbits() const
+    {
+        std::vector<MOrbit> result;
+        for (auto &&orb : orbits)
+        {
+            for (int m = -orb.j; m <= orb.j; m += 2)
+            {
+                result.emplace_back(orb, m);
+            }
+        }
+        return result;
+    }
+    // 壳内有几条j-scheme轨道。
+    int jsize() const { return orbits.size(); }
+    // 壳内有几条m-scheme轨道
+    int msize() const
+    {
+        int sum = 0;
+        for (auto &&orb : orbits)
+            sum += orb.j + 1;
+        return sum;
+    }
+    // 计算壳内能够容纳几个质子。
+    int psize() const
+    {
+        int sum = 0;
+        for (auto &&orb : orbits)
+        {
+            if (orb.tz == -1)
+                sum += orb.j + 1;
+        }
+        return sum;
+    }
+    // 计算壳内能够容纳几个中子。
+    int nsize() const
+    {
+        int sum = 0;
+        for (auto &&orb : orbits)
+        {
+            if (orb.tz == 1)
+                sum += orb.j + 1;
+        }
+        return sum;
+    }
+};
+
+inline const NuclearShell s_shell = std::vector<JOrbit>{
+    JOrbit(0, 0, 1, -1), JOrbit(0, 0, 1, 1) // 0s1/2
+};
+inline const NuclearShell p_shell = std::vector<JOrbit>{
+    JOrbit(0, 1, 3, -1), JOrbit(0, 1, 3, 1), // 0p3/2
+    JOrbit(0, 1, 1, -1), JOrbit(0, 1, 1, 1)  // 0p1/2
+};
+inline const NuclearShell sd_shell = std::vector<JOrbit>{
+    JOrbit(0, 2, 5, -1), JOrbit(0, 2, 5, 1), // 0d5/2
+    JOrbit(1, 0, 1, -1), JOrbit(1, 0, 1, 1), // 1s1/2
+    JOrbit(0, 2, 3, -1), JOrbit(0, 2, 3, 1)  // 0d3/2
+};
+
+inline const NuclearShell pf_shell = std::vector<JOrbit>{
+    JOrbit(0, 3, 7, -1), JOrbit(0, 3, 7, 1), // 0f7/2
+    JOrbit(1, 1, 3, -1), JOrbit(1, 1, 3, 1), // 1p3/2
+    JOrbit(0, 3, 5, -1), JOrbit(0, 3, 5, 1), // 0f5/2
+    JOrbit(1, 1, 1, -1), JOrbit(1, 1, 1, 1)  // 1p1/2
+};
+
+inline NuclearShell merge(const NuclearShell &ns1, const NuclearShell &ns2)
+{
+    std::vector<JOrbit> orbits;
+    std::copy(ns1.orbits.cbegin(), ns1.orbits.cend(), std::back_inserter(orbits));
+    std::copy(ns2.orbits.cbegin(), ns2.orbits.cend(), std::back_inserter(orbits));
+    return NuclearShell(orbits);
+}
+
+// 构建从`N = 0`到`N = Nmax`的所有谐振子轨道。
+inline NuclearShell HO_shell(int N)
+{
+    std::vector<JOrbit> orbits;
+    for (int n = 0; n <= N / 2; ++n)
+    {
+        int l = N - 2 * n;
+        for (int j = 2 * l + 1; j >= std::max(2 * l - 1, 0); j -= 2)
+        {
+            orbits.emplace_back(n, l, j, -1);
+            orbits.emplace_back(n, l, j, 1);
+        }
+    }
+    return NuclearShell(orbits);
+}
+
+// 构建从`N = 0`到`N = Nmax`的所有谐振子轨道。
+inline NuclearShell HO_orbits(int Nmax)
+{
+    std::vector<JOrbit> orbits;
+    for (int N = 0; N <= Nmax; ++N)
+    {
+        for (int n = 0; n <= N / 2; ++n)
+        {
+            int l = N - 2 * n;
+            for (int j = 2 * l + 1; j >= std::max(2 * l - 1, 0); j -= 2)
+            {
+                orbits.emplace_back(n, l, j, -1);
+                orbits.emplace_back(n, l, j, 1);
+            }
+        }
+    }
+    return NuclearShell(orbits);
+}
+
+// 表示价空间的内。这个还是要有一定物理意义的，价轨道应该在核芯之上。
+struct ValenceSpace
+{
+    int core_proton;
+    int core_neutron;
+    NuclearShell ns;
+    ValenceSpace(int cp, int cn, const NuclearShell &_ns) : core_proton(cp), core_neutron(cn), ns(_ns) {}
+};
+
+inline const ValenceSpace p_space(2, 2, p_shell);
+inline const ValenceSpace sd_space(8, 8, sd_shell);
+inline const ValenceSpace pf_space(20, 20, pf_shell);
 
 // 同位素
 struct Isotope
 {
     // 直接根据核子数构造同位素
-    Isotope(int Z, int N) : _Z(Z), _N(N) {}
+    Isotope(int _Z, int _N) : Z(_Z), N(_N) {}
 
     // 根据核素名称构造同位素，仅支持形如 `Ne20` 这样的名称
     Isotope(const std::string &name)
@@ -267,41 +421,49 @@ struct Isotope
         std::smatch isotope_match;
         if (!std::regex_search(name, isotope_match, pattern))
         {
-            _Z = -1;
-            _N = -1;
+            Z = -1;
+            N = -1;
             return;
         }
-        _name = isotope_match[1];
-        auto ele = find_element_with_symbol(_name);
-        _Z = ele.Z();
-        _N = std::stoi(isotope_match[2]) - _Z;
+        std::string sym = isotope_match[1];
+        auto ele = find_element_with_symbol(sym);
+        Z = ele.Z();
+        N = std::stoi(isotope_match[2]) - Z;
     }
 
-    // 给定某个壳，及其价核子数，构造同位素
-    Isotope(const NuclearShell &ns, int Z, int N) : Isotope(Z + ns.core, N + ns.core) {}
+    // 给定某个价空间，及其价核子数，构造同位素
+    Isotope(const ValenceSpace &vs, int _Z, int _N) : Isotope(_Z + vs.core_proton, _N + vs.core_neutron) {}
+    Isotope(const Isotope &iso, int _Z, int _N) : Isotope(_Z + iso.Z, _N + iso.N) {}
+    Isotope(const std::string &core, int _Z, int _N)
+    {
+        Isotope core_iso(core);
+        Z = core_iso.Z + _Z;
+        N = core_iso.N + _N;
+    }
 
     // 某个核素在某个壳内的价核子数目
-    std::tuple<int, int> valence(const NuclearShell &ns) const { return std::make_tuple(_Z - ns.core, _N - ns.core); }
+    std::tuple<int, int> valence(const ValenceSpace &vs) const
+    {
+        return std::make_tuple(Z - vs.core_proton, N - vs.core_neutron);
+    }
 
-    bool is_none() const { return _N < 0; }
+    // 不存在的同位素
+    bool is_none() const { return N < 0 || Z < 0; }
 
-    int A() const { return _N + _Z; }
-    int Z() const { return _Z; }
-    int N() const { return _N; }
-    std::string name() const { return _name; }
+    int getA() const { return N + Z; }
+    int getZ() const { return Z; }
+    int getN() const { return N; }
 
     friend std::ostream &operator<<(std::ostream &os, const Isotope &iso)
     {
-        os << iso._name << iso.A();
+        os << find_element_with_Z(iso.getZ()).symbol() << iso.getA();
         return os;
     }
 
-  private:
-    int _Z;
-    int _N;
-    std::string _name;
+    int Z;
+    int N;
 };
 
 } // end namespace util
 
-#endif // UTIL_ATOM_NAME_HPP
+#endif // UTIL_NUCLEUS_HPP

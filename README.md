@@ -12,7 +12,7 @@
 - [matrix](./cpp/matrix)，计算物理作业相关代码。
 - [snippet](./cpp/snippet)，一些乱七八糟的代码片段。
 - [statistics](./cpp/statistics)，统计相关的代码。
-- [atom-name](./cpp/atom-name)，根据原子序数获得原子的名称。
+- [nucleus](./cpp/nucleus)，原子核物理相关，其中包含了元素周期表。
 
 ## latex
 
