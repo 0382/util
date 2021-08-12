@@ -9,6 +9,8 @@
 #define UTIL_NUCLEUS_HPP
 
 #include <algorithm>
+#include <bitset>
+#include <cassert>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -329,6 +331,28 @@ struct NuclearShell
         }
         return sum;
     }
+    // 计算壳内质子最大角动量
+    int max_pj() const
+    {
+        int maxj = 1;
+        for (auto &&orb : orbits)
+        {
+            if (orb.tz == -1)
+                maxj = std::max(maxj, orb.j);
+        }
+        return maxj;
+    }
+    // 计算壳内中子最大角动量
+    int max_nj() const
+    {
+        int maxj = 1;
+        for (auto &&orb : orbits)
+        {
+            if (orb.tz == 1)
+                maxj = std::max(maxj, orb.j);
+        }
+        return maxj;
+    }
 };
 
 inline const NuclearShell s_shell = std::vector<JOrbit>{
@@ -359,6 +383,52 @@ inline NuclearShell merge(const NuclearShell &ns1, const NuclearShell &ns2)
     return NuclearShell(orbits);
 }
 
+// 单粒子轨道将 m 量子数转化为正数作为索引
+inline int m2index(int m) { return m >= 0 ? m : ~m; }
+// 将单粒子轨道映射成的索引转化为 m 量子数
+inline int index2m(int idx) { return (idx & 0x01) ? idx : ~idx; }
+
+// 计算谐振子基 Nmax = N 的 m-scheme 轨道数目。注意仅计算质子，
+// 因为后面的计算是对质子和中子分开算的，省的后面再手动除以 2 了。
+constexpr int HO_size(int N) { return (N + 1) * (N + 2) * (N + 3) / 3; }
+
+template <std::size_t N>
+std::bitset<N> operator+(std::bitset<N> a, std::bitset<N> b)
+{
+    std::bitset<N> c;
+    while (b.any())
+    {
+        c = a & b;
+        a ^= b;
+        b = c << 1;
+    }
+    return a;
+}
+
+template <std::size_t N>
+std::bitset<N> operator-(const std::bitset<N> &a)
+{
+    return ~a + std::bitset<N>(1);
+}
+
+template <std::size_t N>
+std::bitset<N> operator-(const std::bitset<N> &a, const std::bitset<N> &b)
+{
+    return a + (-b);
+}
+
+template <std::size_t n>
+std::bitset<n> next(const std::bitset<n> &N)
+{
+    std::bitset<n> one(1);
+    std::bitset<n> t = N | (N - one);
+    auto pos = N._Find_first();
+    return (t + one) | (((~t & -~t) - one) >> (pos + 1));
+}
+
+// 虽然需要指定空间大小有点奇怪
+// 凑合能用就行
+template <std::size_t n>
 std::size_t m_config_size(const NuclearShell &ns, int Z, int N)
 {
     auto orbits = ns.m_orbits();
@@ -375,84 +445,60 @@ std::size_t m_config_size(const NuclearShell &ns, int Z, int N)
     auto p_size = p_orbits.size();
     auto n_size = n_orbits.size();
 
-    std::vector<std::pair<std::vector<bool>, int16_t>> pconfigs, nconfigs;
-    pconfigs.emplace_back(std::vector<bool>(p_size, false), 0);
-    nconfigs.emplace_back(std::vector<bool>(n_size, false), 0);
-    for (int _i = 0; _i < Z; ++_i)
-    {
-        decltype(pconfigs) temp;
-        for (auto &&[D, MM] : pconfigs)
-        {
-            int pos = p_size;
-            for (int idx = 0; idx < D.size(); ++idx)
-            {
-                if (D[idx] == true)
-                {
-                    pos = idx;
-                    break;
-                }
-            }
-            for (int k = 0; k < pos; ++k)
-            {
-                auto Dx = D;
-                Dx[k] = true;
-                auto MMx = MM + p_orbits[k].m;
-                temp.emplace_back(Dx, MMx);
-            }
-        }
-        pconfigs = std::move(temp);
-    }
+    assert(p_size == n);
+    assert(n_size == n);
+
+    std::bitset<n> D0;
+    for (int i = 0; i < Z; ++i)
+        D0.set(i);
 
     std::unordered_map<int16_t, int64_t> hist_pM;
-    for (auto &&[D, MM] : pconfigs)
+    if (Z == 0)
+        hist_pM[0] = 1;
+    else
     {
-        auto pos = hist_pM.find(MM);
-        if (pos == hist_pM.end())
-            hist_pM[MM] = 1;
-        else
-            pos->second += 1;
-    }
-
-    pconfigs.clear();
-    pconfigs.shrink_to_fit();
-
-    for (int _i = 0; _i < N; ++_i)
-    {
-        decltype(nconfigs) temp;
-        for (auto &&[D, MM] : nconfigs)
+        while (D0.count() == Z)
         {
-            int pos = n_size;
-            for (int idx = 0; idx < D.size(); ++idx)
+            int MM = 0;
+            for (int i = 0; i < n; ++i)
             {
-                if (D[idx] == true)
-                {
-                    pos = idx;
-                    break;
-                }
+                if (D0[i])
+                    MM += p_orbits[i].m;
             }
-            for (int k = 0; k < pos; ++k)
-            {
-                auto Dx = D;
-                Dx[k] = true;
-                auto MMx = MM + n_orbits[k].m;
-                temp.emplace_back(Dx, MMx);
-            }
+            auto pos = hist_pM.find(MM);
+            if (pos == hist_pM.end())
+                hist_pM[MM] = 1;
+            else
+                pos->second += 1;
+            D0 = next(D0);
         }
-        nconfigs = std::move(temp);
     }
+
+    D0.reset();
+    for (int i = 0; i < N; ++i)
+        D0.set(i);
 
     std::unordered_map<int16_t, int64_t> hist_nM;
-    for (auto &&[D, MM] : nconfigs)
+    if (N == 0)
+        hist_nM[0] = 1;
+    else
     {
-        auto pos = hist_nM.find(MM);
-        if (pos == hist_nM.end())
-            hist_nM[MM] = 1;
-        else
-            pos->second += 1;
+        while (D0.count() == N)
+        {
+            int MM = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                if (D0[i])
+                    MM += n_orbits[i].m;
+            }
+            auto pos = hist_nM.find(MM);
+            if (pos == hist_nM.end())
+                hist_nM[MM] = 1;
+            else
+                pos->second += 1;
+            D0 = next(D0);
+        }
     }
-
-    nconfigs.clear();
-    nconfigs.shrink_to_fit();
 
     std::size_t sum = 0;
     int target_MM = (N + Z) % 2;
