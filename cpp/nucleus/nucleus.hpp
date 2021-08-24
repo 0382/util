@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <bitset>
 #include <cassert>
+#include <cmath>
+#include <functional>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -389,118 +391,173 @@ inline int m2index(int m) { return m >= 0 ? m : ~m; }
 inline int index2m(int idx) { return (idx & 0x01) ? idx : ~idx; }
 
 // 计算谐振子基 Nmax = N 的 m-scheme 轨道数目。注意仅计算质子，
-// 因为后面的计算是对质子和中子分开算的，省的后面再手动除以 2 了。
+// 因为计算中通常是对质子和中子分开算的，省的后面再手动除以 2 了。
 constexpr int HO_size(int N) { return (N + 1) * (N + 2) * (N + 3) / 3; }
 
-template <std::size_t N>
-std::bitset<N> operator+(std::bitset<N> a, std::bitset<N> b)
+template <typename T>
+T binominal(int n, int k)
 {
-    std::bitset<N> c;
-    while (b.any())
+    if (k < 0)
+        return 0;
+    int sgn = 1; // 保存符号
+    if (n < 0)
     {
-        c = a & b;
-        a ^= b;
-        b = c << 1;
+        n = -n + k - 1;
+        if (k & 0x01)
+            sgn = -sgn;
     }
-    return a;
+    if (k > n)
+        return 0;
+    if (k == 0 || k == n)
+        return sgn;
+    if (k == 1)
+        return sgn * n;
+    // 如果 k 大于 n 的一半
+    if (k > (n >> 1))
+        k = (n - k);
+    T nn = n - k + 1;
+    T x = nn;
+    nn += 1;
+    T rr = 2;
+    while (rr <= k)
+    {
+        x = (x * nn) / rr;
+        rr += 1;
+        nn += 1;
+    }
+    return sgn * x;
 }
 
-template <std::size_t N>
-std::bitset<N> operator-(const std::bitset<N> &a)
+// 通过斯特林公式估计的 binominal 函数溢出的可能
+// 注意是上述算法溢出的可能，而不是二项式系数的溢出可能
+template <typename T>
+bool binominal_safe(int n, int m)
 {
-    return ~a + std::bitset<N>(1);
+    int k = n - m;
+    double f = (n + 0.5) * std::log(n) - (m + 0.5) * std::log(m) - (k - 0.5) * std::log(k) - 1;
+    return f < std::log(std::numeric_limits<T>::max());
 }
 
-template <std::size_t N>
-std::bitset<N> operator-(const std::bitset<N> &a, const std::bitset<N> &b)
+// 将 `n` 个小球放入 `capacities.size()` 个容器内，每个容器的容量由 `capacities` 数组指定
+// 生成所有可能的放置方式
+inline std::vector<std::vector<int>> partision(int n, std::vector<int> capacities)
 {
-    return a + (-b);
-}
-
-template <std::size_t n>
-std::bitset<n> next(const std::bitset<n> &N)
-{
-    std::bitset<n> one(1);
-    std::bitset<n> t = N | (N - one);
-    auto pos = N._Find_first();
-    return (t + one) | (((~t & -~t) - one) >> (pos + 1));
+    std::vector<std::vector<int>> result;
+    auto next = std::function<void(int, std::vector<int>, std::vector<int>)>();
+    next = [&result, &next](int n, const std::vector<int> &caps, const std::vector<int> &line)
+    {
+        // 最后一个容器
+        if (caps.size() == 1)
+        {
+            if (n <= caps.front())
+            {
+                auto xline = line;
+                xline.push_back(n);
+                result.push_back(xline);
+            }
+        }
+        else
+        {
+            // 对第一个容器，放入所有可能的情况
+            for (int i = 0; i <= std::min(n, caps.front()); ++i)
+            {
+                auto xline = line;
+                xline.push_back(i);
+                next(n - i, std::vector<int>(caps.begin() + 1, caps.end()), xline);
+            }
+        }
+    };
+    std::vector<int> line;
+    line.reserve(capacities.size());
+    next(n, capacities, line);
+    return result;
 }
 
 // 虽然需要指定空间大小有点奇怪
 // 凑合能用就行
-template <std::size_t n>
-std::size_t m_config_size(const NuclearShell &ns, int Z, int N)
+inline __int128_t m_config_size(const NuclearShell &ns, int Z, int N)
 {
     auto orbits = ns.m_orbits();
     auto orbit_number = ns.msize();
 
-    std::vector<MOrbit> p_orbits, n_orbits;
+    std::vector<int> p_m_map, n_m_map;
+    p_m_map.resize(ns.max_pj() + 1, 0);
+    n_m_map.resize(ns.max_nj() + 1, 0);
+
     for (auto &&orb : orbits)
     {
         if (orb.tz == -1)
-            p_orbits.push_back(orb);
+        {
+            p_m_map[m2index(orb.m)] += 1;
+        }
         else
-            n_orbits.push_back(orb);
-    }
-    auto p_size = p_orbits.size();
-    auto n_size = n_orbits.size();
-
-    assert(p_size == n);
-    assert(n_size == n);
-
-    std::bitset<n> D0;
-    for (int i = 0; i < Z; ++i)
-        D0.set(i);
-
-    std::unordered_map<int16_t, int64_t> hist_pM;
-    if (Z == 0)
-        hist_pM[0] = 1;
-    else
-    {
-        while (D0.count() == Z)
         {
-            int MM = 0;
-            for (int i = 0; i < n; ++i)
-            {
-                if (D0[i])
-                    MM += p_orbits[i].m;
-            }
-            auto pos = hist_pM.find(MM);
-            if (pos == hist_pM.end())
-                hist_pM[MM] = 1;
-            else
-                pos->second += 1;
-            D0 = next(D0);
+            n_m_map[m2index(orb.m)] += 1;
         }
     }
 
-    D0.reset();
-    for (int i = 0; i < N; ++i)
-        D0.set(i);
-
-    std::unordered_map<int16_t, int64_t> hist_nM;
-    if (N == 0)
-        hist_nM[0] = 1;
-    else
+    int max_p_bin = *std::max_element(p_m_map.cbegin(), p_m_map.cend());
+    if (!binominal_safe<int64_t>(max_p_bin, Z))
     {
-        while (D0.count() == N)
-        {
-            int MM = 0;
-            for (int i = 0; i < n; ++i)
-            {
-                if (D0[i])
-                    MM += n_orbits[i].m;
-            }
-            auto pos = hist_nM.find(MM);
-            if (pos == hist_nM.end())
-                hist_nM[MM] = 1;
-            else
-                pos->second += 1;
-            D0 = next(D0);
-        }
+        std::cout << "binominal of int64_t may overflow\n";
+        std::exit(0);
+    }
+    int max_n_bin = *std::max_element(n_m_map.cbegin(), n_m_map.cend());
+    if (!binominal_safe<int64_t>(max_n_bin, N))
+    {
+        std::cout << "binominal of int64_t may overflow\n";
+        std::exit(0);
     }
 
-    std::size_t sum = 0;
+    std::unordered_map<int, __int128_t> hist_pM, hist_nM;
+
+    auto p_ptn = partision(Z, p_m_map);
+    for (auto &&line : p_ptn)
+    {
+        __int128_t num = 1;
+        int m = 0;
+        for (int idx = 0; idx < line.size(); ++idx)
+        {
+            m += line[idx] * index2m(idx);
+            num *= binominal<int64_t>(p_m_map[idx], line[idx]);
+        }
+        auto pos = hist_pM.find(m);
+        if (pos == hist_pM.end())
+        {
+            hist_pM[m] = num;
+        }
+        else
+        {
+            pos->second += num;
+        }
+    }
+    p_ptn.clear();
+    p_ptn.shrink_to_fit();
+
+    auto n_ptn = partision(N, n_m_map);
+    for (auto &&line : n_ptn)
+    {
+        __int128_t num = 1;
+        int m = 0;
+        for (int idx = 0; idx < line.size(); ++idx)
+        {
+            m += line[idx] * index2m(idx);
+            num *= binominal<int64_t>(n_m_map[idx], line[idx]);
+        }
+        auto pos = hist_nM.find(m);
+        if (pos == hist_nM.end())
+        {
+            hist_nM[m] = num;
+        }
+        else
+        {
+            pos->second += num;
+        }
+    }
+    n_ptn.clear();
+    n_ptn.shrink_to_fit();
+
+    __int128_t sum = 0;
     int target_MM = (N + Z) % 2;
     for (auto &&[pm, pnum] : hist_pM)
     {
@@ -513,6 +570,19 @@ std::size_t m_config_size(const NuclearShell &ns, int Z, int N)
         }
     }
     return sum;
+}
+
+inline std::ostream &operator<<(std::ostream &os, __int128_t x)
+{
+    if (x < 0)
+    {
+        os << '-';
+        x = -x;
+    }
+    if (x > 9)
+        os << x / 10;
+    os << int(x % 10);
+    return os;
 }
 
 // 构建一个`N = 2n + l`的谐振子壳层。
