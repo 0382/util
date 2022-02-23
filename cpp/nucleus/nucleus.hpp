@@ -431,25 +431,33 @@ T binominal(int n, int k)
 // 通过斯特林公式估计的 binominal 函数溢出的可能
 // 注意是上述算法溢出的可能，而不是二项式系数的溢出可能
 template <typename T>
-bool binominal_safe(int n, int m)
+bool binominal_max_overflow(int n, int k)
 {
-    int k = n - m;
-    double f = (n + 0.5) * std::log(n) - (m + 0.5) * std::log(m) - (k - 0.5) * std::log(k) - 1;
-    return f < std::log(std::numeric_limits<T>::max());
+    k = std::min(k, n / 2);
+    double t1 = (n + 0.5) * std::log(n);
+    double t2 = (n - k + 0.5) * std::log(n - k);
+    double t3 = (k - 0.5) * std::log(k);
+    double t4 = 0.5 * std::log(2 * 3.141592653589793);
+    if (t1 - t2 - t3 - t4 >= std::log(std::numeric_limits<T>::max()))
+    {
+        return true;
+    }
+    return false;
 }
 
 // 将 `n` 个小球放入 `capacities.size()` 个容器内，每个容器的容量由 `capacities` 数组指定
 // 生成所有可能的放置方式
-inline std::vector<std::vector<int>> partision(int n, std::vector<int> capacities)
+inline std::vector<std::vector<int>> partision(int n, const std::vector<int> &capacities)
 {
     std::vector<std::vector<int>> result;
-    auto next = std::function<void(int, std::vector<int>, std::vector<int>)>();
-    next = [&result, &next](int n, const std::vector<int> &caps, const std::vector<int> &line)
+    auto next = std::function<void(int, int, std::vector<int>)>();
+    const int cap_end = capacities.size() - 1;
+    next = [&result, &next, &capacities, &cap_end](int n, int pos, const std::vector<int> &line)
     {
         // 最后一个容器
-        if (caps.size() == 1)
+        if (pos == cap_end)
         {
-            if (n <= caps.front())
+            if (n <= capacities.back())
             {
                 auto xline = line;
                 xline.push_back(n);
@@ -458,18 +466,18 @@ inline std::vector<std::vector<int>> partision(int n, std::vector<int> capacitie
         }
         else
         {
-            // 对第一个容器，放入所有可能的情况
-            for (int i = 0; i <= std::min(n, caps.front()); ++i)
+            // 对当前容器，放入所有可能的情况
+            for (int i = 0; i <= std::min(n, capacities[pos]); ++i)
             {
                 auto xline = line;
                 xline.push_back(i);
-                next(n - i, std::vector<int>(caps.begin() + 1, caps.end()), xline);
+                next(n - i, pos + 1, xline);
             }
         }
     };
     std::vector<int> line;
     line.reserve(capacities.size());
-    next(n, capacities, line);
+    next(n, 0, line);
     return result;
 }
 
@@ -497,13 +505,13 @@ inline __int128_t m_config_size(const NuclearShell &ns, int Z, int N)
     }
 
     int max_p_bin = *std::max_element(p_m_map.cbegin(), p_m_map.cend());
-    if (!binominal_safe<int64_t>(max_p_bin, Z))
+    if (binominal_max_overflow<int64_t>(max_p_bin, Z))
     {
         std::cout << "binominal of int64_t may overflow\n";
         std::exit(0);
     }
     int max_n_bin = *std::max_element(n_m_map.cbegin(), n_m_map.cend());
-    if (!binominal_safe<int64_t>(max_n_bin, N))
+    if (binominal_max_overflow<int64_t>(max_n_bin, N))
     {
         std::cout << "binominal of int64_t may overflow\n";
         std::exit(0);

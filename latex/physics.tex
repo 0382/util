@@ -6,7 +6,18 @@
 \newcommand{\ket}[1]{|{#1}\rangle}
 \newcommand{\braket}[2]{\langle{#1}|{#2}\rangle}
 
+% 尖括号平均值
+\newcommand{\anglemean}[1]{\langle{#1}\rangle}
+
+% 实数虚数
+\renewcommand{\Re}[1]{\mathfrak{Re}(#1)}
+\renewcommand{\Im}[1]{\mathfrak{Im}(#1)}
+
 % 三种矩阵简写
-\newcommand{\pmat}[1]{\begin{pmatrix}{#1}\end{pmatrix}}
-\newcommand{\bmat}[1]{\begin{bmatrix}{#1}\end{bmatrix}}
-\newcommand{\Bmat}[1]{\begin{Bmatrix}{#1}\end{Bmatrix}}
+\newcommand{\pmat}[1]{\begin{pmatrix}#1\end{pmatrix}}
+\newcommand{\bmat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+\newcommand{\Bmat}[1]{\begin{Bmatrix}#1\end{Bmatrix}}
+
+% 绝对值和范数
+\newcommand{\abs}[1]{\vert #1 \vert}
+\newcommand{\norm}[1]{\Vert #1 \Vert}
