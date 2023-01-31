@@ -255,14 +255,14 @@ class argparser
     // add short circuit option
     argparser &add_sc_option(std::string sname, std::string lname, std::string help, std::function<void(void)> callback)
     {
-        // allow short name be empty
+        // long name must not be empty
+        check_add_option_lname(lname);
+        // allow short name to be empty
         if (sname != "")
         {
             check_add_option_sname(sname);
             short_name_index[sname.back()] = short_circuit_options.size();
         }
-        // but long name must not be empty
-        check_add_option_lname(lname);
         short_circuit_options.emplace_back(std::move(sname), std::move(lname), std::move(help), std::move(callback));
         return *this;
     }
@@ -275,12 +275,12 @@ class argparser
             std::cerr << "(build error) unsupport type for option: " << typeid(T).name() << std::endl;
             std::exit(-1);
         }
+        check_add_option_lname(lname);
         if (sname != "")
         {
             check_add_option_sname(sname);
             short_name_index[sname.back()] = options.size();
         }
-        check_add_option_lname(lname);
         options.emplace_back(std::move(sname), std::move(lname), std::move(help), type_string<T>(),
                              to_string(default_value));
         return *this;
@@ -288,12 +288,12 @@ class argparser
 
     argparser &add_option(std::string sname, std::string lname, std::string help)
     {
+        check_add_option_lname(lname);
         if (sname != "")
         {
             check_add_option_sname(sname);
             short_name_index[sname.back()] = options.size();
         }
-        check_add_option_lname(lname);
         options.emplace_back(std::move(sname), std::move(lname), std::move(help), "bool", "0");
         return *this;
     }
@@ -327,6 +327,12 @@ class argparser
             std::cerr << "(get error) option not found: " << name << std::endl;
             std::exit(-1);
         }
+        if (pos->type != type_string<T>())
+        {
+            std::cerr << "(get error) option type mismatch: set '" << pos->type << "' but you try get with '"
+                      << type_string<T>() << "'" << std::endl;
+            std::exit(-1);
+        }
         return parse_value<T>(pos->value);
     }
 
@@ -342,17 +348,22 @@ class argparser
     T get_argument(const std::string &name) const
     {
         auto pos = find_argument(name);
-        if (pos != arguments.cend())
+        if (pos == arguments.cend())
         {
-            return parse_value<T>(pos->value);
+            pos = find_named_argument(name);
         }
-        pos = find_named_argument(name);
-        if (pos != named_arguments.cend())
+        if (pos == named_arguments.cend())
         {
-            return parse_value<T>(pos->value);
+            std::cerr << "(get error) argument not found: " << name << std::endl;
+            std::exit(-1);
         }
-        std::cerr << "(get error) argument not found: " << name << std::endl;
-        std::exit(-1);
+        if (pos->type != type_string<T>())
+        {
+            std::cerr << "(get error) argument type mismatch: set '" << pos->type << "' but you try get with '"
+                      << type_string<T>() << "'" << std::endl;
+            std::exit(-1);
+        }
+        return parse_value<T>(pos->value);
     }
 
     // some alias for get_argument
@@ -414,12 +425,6 @@ class argparser
                               << " should have value" << std::endl;
                     std::exit(-1);
                 }
-                if (pos->front() == '-')
-                {
-                    std::cerr << "(parse error) option " << opt.short_name << " " << opt.long_name
-                              << " followed by another option" << std::endl;
-                    std::exit(-1);
-                }
                 opt.value = *pos;
                 pos = tokens.erase(pos);
             }
@@ -472,15 +477,6 @@ class argparser
                 pos = tokens.erase(pos);
             }
         }
-        // check if there are any uncached options
-        for (auto &&tok : tokens)
-        {
-            if (tok.front() == '-')
-            {
-                std::cerr << "(parse error) unrecognized option: " << tok << std::endl;
-                std::exit(-1);
-            }
-        }
         // start parse named arguments
         if (tokens.size() < named_arguments.size())
         {
@@ -504,11 +500,17 @@ class argparser
                 std::exit(-1);
             }
         }
-        // start parse arguments
+        // start parse position arguments
         if (tokens.size() != arguments.size())
         {
             std::cerr << "(parse error) position argument number missmatching, give " << tokens.size() << ", but need "
-                      << arguments.size() << std::endl;
+                      << arguments.size() << '\n';
+            std::cerr << "uncaptured command line arguments:\n";
+            for (const auto &tok : tokens)
+            {
+                std::cerr << tok << '\n';
+            }
+            std::cerr << std::flush;
             std::exit(-1);
         }
         for (std::size_t i = 0; i < tokens.size(); ++i)
@@ -521,7 +523,7 @@ class argparser
     // print to file
     void print_as_ini(std::ostream &os, bool comments = false) const
     {
-        if(options.size() > 0)
+        if (options.size() > 0)
         {
             os << "[options]\n";
         }

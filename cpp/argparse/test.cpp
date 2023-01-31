@@ -3,7 +3,8 @@
 
 #define VERSION "0.0.1"
 
-namespace util{
+namespace util
+{
 
 template <>
 inline std::string type_string<StepRange>()
@@ -30,16 +31,15 @@ StepRange parse_value<StepRange>(const std::string &str)
     return range(m_begin, m_end, m_step);
 }
 
-}
+} // namespace util
 
 int main(int argc, char const *argv[])
 {
     auto args = util::argparser("A quantum physics calculation program.");
     args.set_program_name("test")
         .add_help_option()
-        .add_sc_option("-v", "--version", "show version info", []() {
-            std::cout << "version " << VERSION << std::endl;
-        })
+        .add_sc_option("-v", "--version", "show version info",
+                       []() { std::cout << "version " << VERSION << std::endl; })
         .add_option("-o", "--openmp", "use openmp or not")
         .add_option("-m", "--mpi", "use mpi or not")
         .add_option<int>("-t", "--threads", "if openmp it set,\nuse how many threads,\ndefault is 4", 4)
@@ -47,11 +47,11 @@ int main(int argc, char const *argv[])
         .add_named_argument<std::string>("input", "initialize file")
         .add_named_argument<std::string>("output", "output file")
         .parse(argc, argv);
-    if(args.has_option("--openmp"))
+    if (args.has_option("--openmp"))
     {
         std::cout << "openmp is used, and we use " << args.get_option_int("--threads") << " threads" << std::endl;
     }
-    if(args.has_option("--mpi"))
+    if (args.has_option("--mpi"))
     {
         std::cout << "mpi is used" << std::endl;
     }
