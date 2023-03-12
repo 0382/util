@@ -6,3 +6,5 @@ temp*
 # compile files
 *.o
 *.exe
+*.mod
+*.so
