@@ -2,9 +2,11 @@
 #ifndef UTIL_LOGGER_HPP
 #define UTIL_LOGGER_HPP
 
-#include <ctime>
+#include <chrono>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
+
 
 namespace util
 {
@@ -21,6 +23,7 @@ enum class LogLevel
 class Logger
 {
   public:
+    using Logger_clock = std::chrono::system_clock;
     static Logger &instance()
     {
         static Logger log;
@@ -30,7 +33,7 @@ class Logger
     void init(LogLevel level)
     {
         m_log_level = level;
-        std::time(&m_start_time);
+        m_start_time = Logger_clock::now();
     }
 
     template <typename... Args>
@@ -72,7 +75,7 @@ class Logger
 
   private:
     LogLevel m_log_level;
-    std::time_t m_start_time;
+    Logger_clock::time_point m_start_time;
 
   private:
     Logger() = default;
@@ -84,14 +87,18 @@ class Logger
     template <typename... Args>
     void write_log(LogLevel level, Args &&...args) const
     {
-        static thread_local char tm_buffer[16];
         if (static_cast<int>(level) > static_cast<int>(m_log_level))
             return;
-        std::time_t now_time = std::time(nullptr);
-        std::time_t diff_time = int(std::difftime(now_time, m_start_time));
-        std::strftime(tm_buffer, sizeof(tm_buffer), "[%H:%M:%S] ", std::gmtime(&diff_time));
+        auto now_time = Logger_clock::now();
+        auto dura = now_time - m_start_time;
         std::ostringstream oss;
-        oss << tm_buffer;
+        auto hours = std::chrono::floor<std::chrono::hours>(dura).count() % 24;
+        auto minutes = std::chrono::floor<std::chrono::minutes>(dura).count() % 60;
+        auto seconds = std::chrono::floor<std::chrono::seconds>(dura).count() % 60;
+        oss << '[';
+        oss << std::setw(2) << std::setfill('0') << hours << ':';
+        oss << std::setw(2) << std::setfill('0') << minutes << ':';
+        oss << std::setw(2) << std::setfill('0') << seconds << "] ";
         (oss << ... << args) << '\n';
         std::cout << oss.str();
         std::cout.flush();
