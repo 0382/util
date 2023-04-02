@@ -3,10 +3,9 @@
 #define UTIL_LOGGER_HPP
 
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
-
 
 namespace util
 {
