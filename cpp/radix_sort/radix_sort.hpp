@@ -3,92 +3,33 @@
 #define UTIL_RADIX_SORT_HPP
 
 #include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
 #include <cstring>
+#include <limits>
+#include <memory>
+#include <type_traits>
+
 
 namespace util
 {
 
-template <unsigned item_bytes, unsigned compare_bytes>
-void radix_sort_impl(std::size_t n, void *arr, void *buf)
+template <typename T>
+struct radix_trait
 {
-    static_assert(compare_bytes <= item_bytes);
-    using value_t = std::array<unsigned char, item_bytes>;
-    using compare_t = std::array<unsigned char, compare_bytes>;
-    constexpr unsigned bits = CHAR_BIT;
-    constexpr unsigned bins = 1 << bits;
-    constexpr unsigned mask = bins - 1;
-    std::size_t count[compare_bytes][bins] = {0};
-
-    value_t *x = static_cast<value_t *>(arr);
-    value_t *t = static_cast<value_t *>(buf);
-    for (std::size_t i = 0; i < n; ++i)
+    static constexpr unsigned radix_bytes = sizeof(T) / sizeof(unsigned char);
+    template <unsigned index>
+    static constexpr unsigned char get(T x) noexcept
     {
-        compare_t *xi = reinterpret_cast<compare_t *>(x + i);
-        for (unsigned bit_idx = 0; bit_idx < compare_bytes; ++bit_idx)
+        static_assert(index < radix_bytes);
+        if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && (index == radix_bytes - 1))
         {
-            ++count[bit_idx][(*xi)[bit_idx]];
+            return ((unsigned char *)&x)[index] ^ 0x80;
+        }
+        else
+        {
+            return ((unsigned char *)&x)[index];
         }
     }
-    for (unsigned b = 1; b < bins; ++b)
-    {
-        for (unsigned bit_idx = 0; bit_idx < compare_bytes; ++bit_idx)
-        {
-            count[bit_idx][b] += count[bit_idx][b - 1];
-        }
-    }
-    constexpr std::size_t npos = std::size_t(-1);
-    for (unsigned bit_idx = 0; bit_idx < compare_bytes; ++bit_idx)
-    {
-        for (std::size_t i = n - 1; i != npos; --i)
-        {
-            compare_t *xi = reinterpret_cast<compare_t *>(x + i);
-            t[--count[bit_idx][(*xi)[bit_idx]]] = x[i];
-        }
-        std::swap(x, t);
-    }
-    if (x != arr)
-    {
-        std::memcpy(arr, x, n * item_bytes);
-    }
-}
-
-template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-void radix_sort_integer(std::size_t n, T *x)
-{
-    T *buf = new T[n];
-    radix_sort_impl<sizeof(T), sizeof(T)>(n, static_cast<void *>(x), static_cast<void *>(buf));
-    if constexpr (std::is_signed_v<T>)
-    {
-        if (x[0] < 0 || x[n - 1] >= 0)
-        {
-            goto end;
-        }
-        std::size_t start = 0;
-        std::size_t stop = n - 1;
-        std::size_t middle = (start + stop) / 2;
-        do
-        {
-            if (x[middle] >= 0)
-            {
-                start = middle + 1;
-            }
-            else
-            {
-                stop = middle;
-            }
-            middle = (start + stop) / 2;
-        }
-        while (start < stop);
-        std::memcpy(buf, x + middle, (n - middle) * sizeof(T));
-        std::memcpy(buf + n - middle, x, middle * sizeof(T));
-        std::memcpy(x, buf, n * sizeof(T));
-    }
-end:
-    delete[] buf;
-}
+};
 
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
 struct same_integer
@@ -108,56 +49,78 @@ struct same_integer<double>
     using type = int64_t;
 };
 
-// template<> struct same_integer<long double>
-// {
-//     using type = __int128_t;
-// };
+template <unsigned byte_idx, typename T, typename Trait = radix_trait<T>>
+void radix_sort_impl(std::size_t n, T *arr, T *buf)
+{
+    constexpr unsigned radix_bytes = Trait::radix_bytes;
+    static_assert(byte_idx < radix_bytes);
+    constexpr unsigned bits = std::numeric_limits<unsigned char>::digits;
+    constexpr unsigned bins = 1 << bits;
+    std::size_t count[bins] = {0};
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        ++count[Trait::template get<byte_idx>(arr[i])];
+    }
+    for (unsigned b = 1; b < bins; ++b)
+    {
+        count[b] += count[b - 1];
+    }
+    constexpr std::size_t npos = std::size_t(-1);
+    for (std::size_t i = n - 1; i != npos; --i)
+    {
+        buf[--count[Trait::template get<byte_idx>(arr[i])]] = arr[i];
+    }
+    if constexpr (byte_idx < radix_bytes - 1)
+    {
+        radix_sort_impl<unsigned(byte_idx + 1), T, Trait>(n, buf, arr);
+    }
+}
 
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-void radix_sort_float(std::size_t n, T *x)
+void radix_sort_float(std::size_t n, T *arr, T *buf)
 {
     using same_int_t = typename same_integer<T>::type;
     static_assert(sizeof(T) == sizeof(same_int_t));
-    same_int_t *buf = new same_int_t[n];
-    radix_sort_impl<sizeof(T), sizeof(T)>(n, static_cast<void *>(x), static_cast<void *>(buf));
-    same_int_t *px = reinterpret_cast<same_int_t *>(x);
-    if (px[0] < 0) // all negative, reverse the array
+    same_int_t *parr = reinterpret_cast<same_int_t *>(arr);
+    same_int_t *pbuf = reinterpret_cast<same_int_t *>(buf);
+    using same_uint_t = std::make_unsigned_t<same_int_t>;
+    radix_sort_impl<0>(n, (same_uint_t *)arr, (same_uint_t *)buf);
+    if (parr[0] < 0) // all negative, reverse the array
     {
-        std::reverse(x, x + n);
+        std::reverse(arr, arr + n);
     }
-    else if (px[n - 1] >= 0) // all positive, do nothing
+    else if (parr[n - 1] >= 0) // all positive, do nothing
     {}
     else
     {
         std::size_t pos = 0, rev_pos = n - 1;
-        while (px[rev_pos] < 0)
+        while (parr[rev_pos] < 0)
         {
-            buf[pos] = px[rev_pos];
+            pbuf[pos] = parr[rev_pos];
             ++pos;
             --rev_pos;
         }
-        std::memcpy(buf + pos, px, (rev_pos + 1) * sizeof(T));
-        std::memcpy(px, buf, n * sizeof(T));
+        std::memcpy(pbuf + pos, parr, (rev_pos + 1) * sizeof(T));
+        std::memcpy(parr, pbuf, n * sizeof(T));
     }
-    delete[] buf;
 }
 
 template <typename T>
-void radix_sort(std::size_t n, T *x)
+void radix_sort(std::size_t n, T *arr, T *buf = nullptr)
 {
-    if constexpr (std::is_integral_v<T>)
+    std::unique_ptr<unsigned char[]> resource;
+    if (buf == nullptr)
     {
-        radix_sort_integer<T>(n, x);
+        resource = std::make_unique<unsigned char[]>(n * radix_trait<T>::radix_bytes);
+        buf = (T *)resource.get();
     }
-    else if (std::is_floating_point_v<T>)
+    if constexpr (std::is_floating_point_v<T>)
     {
-        radix_sort_float<T>(n, x);
+        radix_sort_float<T>(n, arr, buf);
     }
     else
     {
-        T *buf = new T[n];
-        radix_sort_impl<sizeof(T), sizeof(T)>(n, static_cast<void *>(x), static_cast<void *>(buf));
-        delete[] buf;
+        radix_sort_impl<0>(n, arr, buf);
     }
 }
 

@@ -16,7 +16,7 @@ int main(int argc, char const *argv[])
         std::cout << x[i] << ',';
     }
     std::cout << '\n';
-    double y[] = {3.1, 4.2, 2.3, -1.4, 7.5, -5.6, -9.7, 6.8, -8.9, 0.0};
+    double y[] = {3.1, 4.2, 2.3, -1.4, 7.5, 0.0, -9.7, 6.8, -8.9, -0.0};
     radix_sort(10, y);
     for (int i = 0; i < 10; ++i)
     {
