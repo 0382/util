@@ -6,8 +6,7 @@ using namespace util;
 int main(int argc, char const *argv[])
 {
     std::thread th[10];
-    auto &log = Logger::instance();
-    log.init(LogLevel::Info);
+    log_init(LogLevel::Info);
     for (int i = 0; i < 10; ++i)
     {
         th[i] = std::thread(

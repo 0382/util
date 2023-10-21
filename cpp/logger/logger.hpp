@@ -94,15 +94,21 @@ class Logger
         auto hours = std::chrono::floor<std::chrono::hours>(dura).count() % 24;
         auto minutes = std::chrono::floor<std::chrono::minutes>(dura).count() % 60;
         auto seconds = std::chrono::floor<std::chrono::seconds>(dura).count() % 60;
-        oss << '[';
-        oss << std::setw(2) << std::setfill('0') << hours << ':';
-        oss << std::setw(2) << std::setfill('0') << minutes << ':';
-        oss << std::setw(2) << std::setfill('0') << seconds << "] ";
+        oss << std::setfill('0') << '[';
+        oss << std::setw(2) << hours << ':';
+        oss << std::setw(2) << minutes << ':';
+        oss << std::setw(2) << seconds << "] ";
+        oss << std::setfill(' ');
         (oss << ... << args) << '\n';
         std::cout << oss.str();
         std::cout.flush();
     }
 };
+
+inline void log_init(LogLevel level)
+{
+    Logger::instance().init(level);
+}
 
 template <typename... Args>
 inline void log_error(Args &&...args)
