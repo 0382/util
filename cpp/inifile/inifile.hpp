@@ -250,6 +250,12 @@ class inifile
         save_file.close();
     }
 
+    bool has_section(const std::string &name) const
+    {
+        return std::find_if(sections.cbegin(), sections.cend(),
+                            [&name](const IniSection &sec) { return sec.secname == name; }) != sections.cend();
+    }
+
     // 获取其中一个 section
     IniSection &section(const std::string &name = "") { return *check_section(name); }
     const IniSection &section(const std::string &name = "") const { return *check_section(name); }
