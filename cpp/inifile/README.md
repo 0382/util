@@ -8,18 +8,27 @@
 inifile ini("test.ini"); // 用文件名初始化
 
 // 读取数据
-ini.get_string("key");
-ini.section("section1").get_string("key");
+ini.get_string("key"); // 在默认 section 中读取
+ini.section("sec1").get_string("key"); // 在特定 section 中读取
 
 // 设置数据
 ini.set_string("key", "value");
-ini.section("section1").set_string("key", "value");
+ini.section("sec1").set_string("key", "value");
 
 // 打印和保存
 ini.show();
 ini.save_as("file.ini");
+
+// 迭代器
+for(auto sec : ini)
+{
+    for(auto [k, v] : sec)
+    {
+        // ...
+    }
+}
 ```
 
-其中`string`还可以换成`int,double,bool`，支持这四类数据。ini文件可以分成几个`section`，使用`[section-name]`来标识`section`。这里仅支持`ini.section("section-name")`然后对某`section`的数据进行读写。对于没有标识`section-name`的部分，可以直接读写。实际上代码实现是指定了一个默认的`section`，名字是空字符串。
+其中`string`还可以换成`int,double,bool`，支持这四类数据。ini文件可以分成几个`section`，使用`[section-name]`来标识`section`。这里仅支持`ini.section("section-name")`然后对某`section`的数据进行读写。对于没有标识`section-name`的部分，可以直接读写，实际上代码实现是指定了一个默认的`section`，名字是空字符串。
 
 

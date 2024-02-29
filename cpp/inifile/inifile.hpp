@@ -36,9 +36,32 @@ class inifile
     // 一个ini段落（以`[]`指示的称为段落）
     struct IniSection
     {
-        IniSection(std::string n) : name(std::move(n)) {}
-        std::string name;
+      private:
+        std::string secname;
         std::vector<IniItem> items;
+
+      public:
+        friend class inifile;
+        using item_iterator = std::vector<IniItem>::iterator;
+        using item_const_iterator = std::vector<IniItem>::const_iterator;
+
+        IniSection(std::string name) : secname(std::move(name)) {}
+
+        // 迭代器
+        item_iterator begin() { return items.begin(); }
+        item_iterator end() { return items.end(); }
+        item_const_iterator begin() const { return items.cbegin(); }
+        item_const_iterator end() const { return items.cend(); }
+        item_const_iterator cbegin() const { return items.cbegin(); }
+        item_const_iterator cend() const { return items.cend(); }
+
+        // 段落名
+        std::string name() const
+        {
+            if (secname.empty())
+                return "*DEFAULT*";
+            return secname;
+        }
 
         bool has_key(const std::string &key) const { return find_key(key) != items.cend(); }
 
@@ -68,7 +91,7 @@ class inifile
                 return true;
             if (value == "false" || value == "0")
                 return false;
-            std::cerr << "Section " << this->name << ", key " << key << ", invalid bool value: " << pos->value
+            std::cerr << "Section " << this->name() << ", key " << key << ", invalid bool value: " << pos->value
                       << std::endl;
             std::exit(-1);
         }
@@ -103,8 +126,6 @@ class inifile
         }
 
       private:
-        using item_iterator = std::vector<IniItem>::iterator;
-        using item_const_iterator = std::vector<IniItem>::const_iterator;
         item_iterator find_key(const std::string &key)
         {
             return std::find_if(items.begin(), items.end(), [&key](const IniItem &it) { return it.key == key; });
@@ -120,7 +141,7 @@ class inifile
             auto pos = find_key(key);
             if (pos == items.end())
             {
-                std::cerr << "Section " << this->name << ", key not found: " << key << std::endl;
+                std::cerr << "Section " << this->name() << ", key not found: " << key << std::endl;
                 std::exit(-1);
             }
             return pos;
@@ -131,7 +152,7 @@ class inifile
             auto pos = find_key(key);
             if (pos == items.cend())
             {
-                std::cerr << "Section " << this->name << ", key not found: " << key << std::endl;
+                std::cerr << "Section " << this->name() << ", key not found: " << key << std::endl;
                 std::exit(-1);
             }
             return pos;
@@ -185,7 +206,7 @@ class inifile
             if (line.front() == '[' && line.back() == ']')
             {
                 this->sections.push_back(sec);
-                sec.name = line.substr(1, line.size() - 2);
+                sec.secname = line.substr(1, line.size() - 2);
                 sec.items.clear();
             }
             else if (build_item(line, item))
@@ -203,6 +224,14 @@ class inifile
         this->sections.push_back(sec);
         inifile.close();
     };
+
+    // 迭代器
+    std::vector<IniSection>::iterator begin() { return sections.begin(); }
+    std::vector<IniSection>::iterator end() { return sections.end(); }
+    std::vector<IniSection>::const_iterator begin() const { return sections.cbegin(); }
+    std::vector<IniSection>::const_iterator end() const { return sections.cend(); }
+    std::vector<IniSection>::const_iterator cbegin() const { return sections.cbegin(); }
+    std::vector<IniSection>::const_iterator cend() const { return sections.cend(); }
 
     // ini文件打开是否成功
     bool good() const { return this->_good; }
@@ -294,8 +323,8 @@ class inifile
     {
         for (const auto &sec : this->sections)
         {
-            if (sec.name != "")
-                os << '[' << sec.name << "]\n";
+            if (sec.secname != "")
+                os << '[' << sec.secname << "]\n";
             for (const auto &it : sec.items)
             {
                 os << it.key << " = " << it.value << '\n';
@@ -306,8 +335,8 @@ class inifile
     // 查找 section
     std::vector<IniSection>::iterator check_section(const std::string &name)
     {
-        auto pos =
-            std::find_if(sections.begin(), sections.end(), [&name](const IniSection &sec) { return sec.name == name; });
+        auto pos = std::find_if(sections.begin(), sections.end(),
+                                [&name](const IniSection &sec) { return sec.secname == name; });
         if (pos == sections.end())
         {
             if (name == "")
@@ -322,7 +351,7 @@ class inifile
     std::vector<IniSection>::const_iterator check_section(const std::string &name) const
     {
         auto pos = std::find_if(sections.cbegin(), sections.cend(),
-                                [&name](const IniSection &sec) { return sec.name == name; });
+                                [&name](const IniSection &sec) { return sec.secname == name; });
         if (pos == sections.cend())
         {
             if (name == "")
