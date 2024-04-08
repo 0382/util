@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-function sb_to_jobhash()
+function sb_do_jobhash()
 {
     while read line; do
     # get jobid `Submitted batch job 14015`
@@ -14,5 +14,5 @@ function sb_to_jobhash()
 
 function sb()
 {
-    sbatch $1 | sb_to_jobhash
+    sbatch $1 | sb_do_jobhash
 }
