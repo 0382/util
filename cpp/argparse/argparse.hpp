@@ -211,7 +211,7 @@ class argparser
             }
             std::cout << replace(opt.help, "\n", "\n" + std::string(max_name_length + 2, ' ')) << '\n';
         }
-        if (named_arguments.size() > 0)
+        if (!named_arguments.empty())
         {
             std::cout << "\nNamed arguments:\n";
             max_name_length = 0;
@@ -228,7 +228,7 @@ class argparser
                 std::cout << replace(arg.help, "\n", "\n" + std::string(max_name_length + 2, ' ')) << '\n';
             }
         }
-        if (arguments.size() > 0)
+        if (!arguments.empty())
         {
             std::cout << "\nPosition arguments:\n";
             max_name_length = 0;
@@ -258,7 +258,7 @@ class argparser
         // long name must not be empty
         check_add_option_lname(lname);
         // allow short name to be empty
-        if (sname != "")
+        if (!sname.empty())
         {
             check_add_option_sname(sname);
             short_name_index[sname.back()] = short_circuit_options.size();
@@ -276,7 +276,7 @@ class argparser
             std::exit(-1);
         }
         check_add_option_lname(lname);
-        if (sname != "")
+        if (!sname.empty())
         {
             check_add_option_sname(sname);
             short_name_index[sname.back()] = options.size();
@@ -289,7 +289,7 @@ class argparser
     argparser &add_option(std::string sname, std::string lname, std::string help)
     {
         check_add_option_lname(lname);
-        if (sname != "")
+        if (!sname.empty())
         {
             check_add_option_sname(sname);
             short_name_index[sname.back()] = options.size();
@@ -376,11 +376,11 @@ class argparser
     argparser &parse(int argc, char const *argv[])
     {
         // if not set program name, use argv[0]
-        if (program_name == "")
+        if (program_name.empty())
         {
             program_name = argv[0];
         }
-        if (argc == 1)
+        if (argc == 1 && (!arguments.empty() || !named_arguments.empty()))
         {
             print_usage();
             std::exit(0);
@@ -494,7 +494,7 @@ class argparser
                 }
                 ++pos;
             }
-            if (named_arg.value == "")
+            if (named_arg.value.empty())
             {
                 std::cerr << "(parse error) named_argument " << named_arg.name << " should have value" << std::endl;
                 std::exit(-1);
@@ -523,7 +523,7 @@ class argparser
     // print to file
     void print_as_ini(std::ostream &os, bool comments = false) const
     {
-        if (options.size() > 0)
+        if (!options.empty())
         {
             os << "[options]\n";
         }
@@ -542,7 +542,7 @@ class argparser
                 os << opt.long_name.substr(2) << "=" << opt.value << '\n';
             }
         }
-        if (named_arguments.size() > 0)
+        if (!named_arguments.empty())
         {
             os << "[named_arguments]\n";
         }
@@ -554,7 +554,7 @@ class argparser
             }
             os << named_arg.name << "=" << named_arg.value << '\n';
         }
-        if (arguments.size() > 0)
+        if (!arguments.empty())
         {
             os << "[arguments]\n";
         }
@@ -659,7 +659,7 @@ class argparser
 
     void check_add_option_lname(const std::string &key) const
     {
-        if (key == "")
+        if (key.empty())
         {
             std::cerr << "(build error) long option name cannot be empty" << std::endl;
             std::exit(-1);
@@ -689,7 +689,7 @@ class argparser
             std::cerr << "(build error) argument type cannot be bool" << std::endl;
             std::exit(-1);
         }
-        if (key == "")
+        if (key.empty())
         {
             std::cerr << "(build error) argument name cannot be empty" << std::endl;
             std::exit(-1);

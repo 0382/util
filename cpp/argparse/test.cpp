@@ -1,5 +1,5 @@
 #include "argparse.hpp"
-#include "range.hpp"
+#include "../range/range.hpp"
 
 #define VERSION "0.0.1"
 
