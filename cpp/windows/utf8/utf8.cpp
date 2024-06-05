@@ -1,44 +1,41 @@
 #include <cstring>
 #include <cwchar>
+#include <iostream>
 #include <string>
 #include <windows.h>
 
 std::string utf8_to_ansi(const std::string &u8s)
 {
-    wchar_t *wcs;
-    int need_length = MultiByteToWideChar(CP_UTF8, 0, u8s.c_str(), u8s.size(), wcs, 0);
-    wcs = new wchar_t[need_length + 1];
-    MultiByteToWideChar(CP_UTF8, 0, u8s.c_str(), u8s.size(), wcs, need_length);
-    wcs[need_length] = L'\0';
+    int wcs_len = MultiByteToWideChar(CP_UTF8, 0, u8s.c_str(), u8s.size(), nullptr, 0);
+    std::wstring wcs(wcs_len, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, u8s.c_str(), u8s.size(), &wcs[0], wcs_len);
 
-    char *ansi;
-    need_length = WideCharToMultiByte(CP_ACP, 0, wcs, std::wcslen(wcs), ansi, 0, nullptr, nullptr);
-    ansi = new char[need_length + 1];
-    WideCharToMultiByte(CP_ACP, 0, wcs, std::wcslen(wcs), ansi, need_length, nullptr, nullptr);
-    ansi[need_length] = '\0';
+    int ansi_len = WideCharToMultiByte(CP_ACP, 0, wcs.c_str(), wcs.size(), nullptr, 0, nullptr, nullptr);
+    std::string ansi(ansi_len, '\0');
+    WideCharToMultiByte(CP_ACP, 0, wcs.c_str(), wcs.size(), &ansi[0], ansi_len, nullptr, nullptr);
 
-    std::string result = std::string(ansi);
-    delete[] wcs;
-    delete[] ansi;
-    return result;
+    return ansi;
 }
 
 std::string ansi_to_utf8(const std::string &ansi)
 {
-    wchar_t *wcs;
-    int need_length = MultiByteToWideChar(CP_ACP, 0, ansi.c_str(), ansi.size(), wcs, 0);
-    wcs = new wchar_t[need_length + 1];
-    MultiByteToWideChar(CP_ACP, 0, ansi.c_str(), ansi.size(), wcs, need_length);
-    wcs[need_length] = L'\0';
+    int wcs_len = MultiByteToWideChar(CP_ACP, 0, ansi.c_str(), ansi.size(), nullptr, 0);
+    std::wstring wcs(wcs_len, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, ansi.c_str(), ansi.size(), &wcs[0], wcs_len);
 
-    char *u8s;
-    need_length = WideCharToMultiByte(CP_UTF8, 0, wcs, std::wcslen(wcs), u8s, 0, nullptr, nullptr);
-    u8s = new char[need_length + 1];
-    WideCharToMultiByte(CP_UTF8, 0, wcs, std::wcslen(wcs), u8s, need_length, nullptr, nullptr);
-    u8s[need_length] = '\0';
+    int u8s_len = WideCharToMultiByte(CP_UTF8, 0, wcs.c_str(), wcs.size(), nullptr, 0, nullptr, nullptr);
+    std::string u8s(u8s_len, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wcs.c_str(), wcs.size(), &u8s[0], u8s_len, nullptr, nullptr);
 
-    std::string result(u8s);
-    delete[] wcs;
-    delete[] u8s;
-    return result;
+    return u8s;
+}
+
+int main()
+{
+    std::string u8s = "你好，世界！";
+    std::string ansi = utf8_to_ansi(u8s);
+    std::cout << ansi << std::endl;
+    std::string u8s2 = ansi_to_utf8(ansi);
+    std::cout << (u8s == u8s2) << std::endl;
+    return 0;
 }
