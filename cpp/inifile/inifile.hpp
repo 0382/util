@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -40,6 +41,13 @@ class inifile
         std::string secname;
         std::vector<IniItem> items;
 
+        static std::string show_name(const std::string &secname)
+        {
+            if (secname.empty())
+                return "*DEFAULT*";
+            return secname;
+        }
+
       public:
         friend class inifile;
         using item_iterator = std::vector<IniItem>::iterator;
@@ -56,12 +64,7 @@ class inifile
         item_const_iterator cend() const { return items.cend(); }
 
         // 段落名
-        std::string name() const
-        {
-            if (secname.empty())
-                return "*DEFAULT*";
-            return secname;
-        }
+        std::string name() const { return show_name(secname); }
 
         bool has_key(const std::string &key) const { return find_key(key) != items.cend(); }
 
@@ -183,19 +186,19 @@ class inifile
   public:
     inifile(const std::string &fname) : _good(true)
     {
-        std::fstream inifile(fname);
-        if (!inifile.is_open())
+        std::ifstream fp(fname);
+        if (!fp.is_open())
         {
             this->_good = false;
-            this->msg = "cannot open file: " + fname;
+            this->msg = "open file failed: " + fname;
             return;
         }
         std::string line;
         IniSection sec = {""};
         IniItem item;
-        while (!inifile.eof())
+        while (!fp.eof())
         {
-            std::getline(inifile, line);
+            std::getline(fp, line);
             line = remove_comment(line);
             line = strip(line);
             line = strip(line, '\r');
@@ -207,23 +210,33 @@ class inifile
             {
                 this->sections.push_back(sec);
                 sec.secname = line.substr(1, line.size() - 2);
+                if (has_section(sec.secname))
+                {
+                    this->_good = false;
+                    this->msg = "duplicate section: " + sec.secname;
+                    return;
+                }
                 sec.items.clear();
             }
             else if (build_item(line, item))
             {
+                if (sec.has_key(item.key))
+                {
+                    this->_good = false;
+                    this->msg = "duplicate key: " + item.key + " in section " + sec.name();
+                    return;
+                }
                 sec.items.push_back(item);
             }
             else
             {
                 this->_good = false;
                 this->msg = "invalid ini line: " + line;
-                this->sections.clear();
                 return;
             }
         }
         this->sections.push_back(sec);
-        inifile.close();
-    };
+    }
 
     // 迭代器
     std::vector<IniSection>::iterator begin() { return sections.begin(); }
@@ -237,7 +250,7 @@ class inifile
     bool good() const { return this->_good; }
 
     // 出错时的错误信息
-    std::string error() const { return this->msg; }
+    std::string error_msg() const { return this->msg; }
 
     // 输出到控制台
     void show() const { this->print(std::cout); }
@@ -250,15 +263,22 @@ class inifile
         save_file.close();
     }
 
-    bool has_section(const std::string &name) const
-    {
-        return std::find_if(sections.cbegin(), sections.cend(),
-                            [&name](const IniSection &sec) { return sec.secname == name; }) != sections.cend();
-    }
+    bool has_section(const std::string &name) const { return find_section(name) != sections.cend(); }
 
     // 获取其中一个 section
-    IniSection &section(const std::string &name = "") { return *check_section(name); }
-    const IniSection &section(const std::string &name = "") const { return *check_section(name); }
+    IniSection &section(const std::string &name) { return *check_section(name); }
+    const IniSection &section(const std::string &name) const { return *check_section(name); }
+
+    inifile &add_section(const std::string &name)
+    {
+        if (has_section(name))
+        {
+            std::cerr << "duplicate section: " << IniSection::show_name(name) << std::endl;
+            std::exit(-1);
+        }
+        this->sections.push_back(IniSection{name});
+        return *this;
+    }
 
     // 提供从默认的section中获取value
     std::string get_string(const std::string &key) const { return section("").get_string(key); }
@@ -329,7 +349,7 @@ class inifile
     {
         for (const auto &sec : this->sections)
         {
-            if (sec.secname != "")
+            if (!sec.secname.empty())
                 os << '[' << sec.secname << "]\n";
             for (const auto &it : sec.items)
             {
@@ -338,17 +358,25 @@ class inifile
         }
     }
 
+    std::vector<IniSection>::iterator find_section(const std::string &name)
+    {
+        return std::find_if(sections.begin(), sections.end(),
+                            [&name](const IniSection &sec) { return sec.secname == name; });
+    }
+
+    std::vector<IniSection>::const_iterator find_section(const std::string &name) const
+    {
+        return std::find_if(sections.cbegin(), sections.cend(),
+                            [&name](const IniSection &sec) { return sec.secname == name; });
+    }
+
     // 查找 section
     std::vector<IniSection>::iterator check_section(const std::string &name)
     {
-        auto pos = std::find_if(sections.begin(), sections.end(),
-                                [&name](const IniSection &sec) { return sec.secname == name; });
+        auto pos = find_section(name);
         if (pos == sections.end())
         {
-            if (name == "")
-                std::cerr << "on default section" << std::endl;
-            else
-                std::cerr << "section not found: " << name << std::endl;
+            std::cerr << "section not found: " << IniSection::show_name(name) << std::endl;
             std::exit(-1);
         }
         return pos;
@@ -356,14 +384,10 @@ class inifile
 
     std::vector<IniSection>::const_iterator check_section(const std::string &name) const
     {
-        auto pos = std::find_if(sections.cbegin(), sections.cend(),
-                                [&name](const IniSection &sec) { return sec.secname == name; });
+        auto pos = find_section(name);
         if (pos == sections.cend())
         {
-            if (name == "")
-                std::cerr << "on default section" << std::endl;
-            else
-                std::cerr << "section not found: " << name << std::endl;
+            std::cerr << "section not found: " << IniSection::show_name(name) << std::endl;
             std::exit(-1);
         }
         return pos;
