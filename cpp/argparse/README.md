@@ -7,24 +7,76 @@
 int main(int argc, char const *argv[])
 {
     auto args = util::argparser("A quantum physics calculation program.");
-    args.set_program_name("test")
+    args.set_program_name("qcalc")
         .add_help_option()
-        .add_sc_option("-v", "--version", "show version info", []() {
-            std::cout << "version " << VERSION << std::endl;
-        })
+        .use_color_error()
+        .add_sc_option("-v", "--version", "show version info",
+                       []() { std::cout << "qcalc version " << VERSION << std::endl; })
         .add_option("-o", "--openmp", "use openmp or not")
         .add_option("-m", "--mpi", "use mpi or not")
-        .add_option<int>("-t", "--threads", "if openmp it set,\nuse how many threads,\ndefault is 4", 4)
+        .add_option<int>("-t", "--threads", "if openmp is set,\nuse how many threads,\ndefault is 16", 16)
+        .add_option<int>("-p", "--processes", "if mpi is set,\nuse how many processes,\ndefault is 4", 4)
+        .add_option<std::string>("", "--chemical", "chamical formula", "H2O")
         .add_option<util::StepRange>("-r", "--range", "range", util::range(0, 10, 2))
         .add_named_argument<std::string>("input", "initialize file")
         .add_named_argument<std::string>("output", "output file")
         .parse(argc, argv);
+    if (args.has_option("--openmp"))
+    {
+        std::cout << "openmp is used, and we use " << args.get_option_int("--threads") << " threads" << std::endl;
+    }
+    if (args.has_option("--mpi"))
+    {
+        std::cout << "mpi is used, and we use " << args.get_option_int("--processes") << " processes" << std::endl;
+    }
+    std::cout << "the chemical formula is " << args.get_option_string("--chemical") << std::endl;
+    std::cout << "calculate range is ";
+    for (auto i : args.get_option<util::StepRange>("--range"))
+    {
+        std::cout << i << ',';
+    }
+    std::cout << std::endl;
+    std::cout << "the input file is " << args.get_argument<std::string>("input") << std::endl;
+    std::cout << "the output file is " << args.get_argument<std::string>("output") << std::endl;
+    return 0;
 }
+```
+将其编译为可执行文件`qcalc`，运行效果如下
+```bash
+> ./qcalc -?
+usage: qcalc [options] [=input] [=output]
+
+A quantum physics calculation program.
+
+Options:
+  -?, --help               show this help message
+  -v, --version            show version info
+  -o, --openmp             use openmp or not
+  -m, --mpi                use mpi or not
+  -t, --threads            (int) if openmp is set,
+                           use how many threads,
+                           default is 16
+  -p, --processes          (int) if mpi is set,
+                           use how many processes,
+                           default is 4
+  --chemical               (string) chamical formula
+  -r, --range              (StepRange) range
+
+Named arguments:
+  input                    (string) initialize file
+  output                   (string) output file
+> ./qcalc -mo input=input.ini -p 2 -r 0:3:20 output=output.bin --chemical C6H6
+openmp is used, and we use 16 threads
+mpi is used, and we use 2 processes
+the chemical formula is C6H6
+calculate range is 0,3,6,9,12,15,18,
+the input file is input.ini
+the output file is output.bin
 ```
 
 ## 解析规则
 
-在我的库里面，命令行参数分为两大类（可选的**选项**，和必选的**参数**），每种又分为两种，即共四种命令行参数。
+在我的库里面，命令行参数分为两大类（可选的**选项**，和必选的**参数**），每类又分为两种，即共四种命令行参数。
 
 ### `option`（选项）
 
@@ -34,7 +86,7 @@ int main(int argc, char const *argv[])
 
 用如下方式添加一般选项：
 ```c++
-args.add_option<int>("-t", "--threads", "threads number, default is 4", 4);
+args.add_option<int>("-t", "--threads", "threads number, default is 16", 16);
 ```
 其中第一个是短选项名，是可以为空字符串的，如果非空，则必须是一个`'-'`后接单个字符；第二个是长选项名，不能为空字符串，必须以`"--"`开头。第三个是帮助信息，最后一个是该选项的默认值。
 
@@ -140,21 +192,6 @@ args.add_sc_option("-?", "--help", "show this help message", [&args](){
 
 ## 获取结果
 
-获取结果的方式举例如下
-```c++
-if(args.has_option("--openmp"))
-{
-    std::cout << "openmp is used, and we use " << args.get_option_int("--threads") << " threads" << std::endl;
-}
-if(args.has_option("--mpi"))
-{
-    std::cout << "mpi is used" << std::endl;
-}
-std::cout << "calculate range is " << args.get_option<util::StepRange>("--range") << std::endl;
-std::cout << "the input file is " << args.get_argument<std::string>("input") << std::endl;
-std::cout << "the output file is " << args.get_argument<std::string>("output") << std::endl;
-```
-
 ### 获取选项
 
 短路选项通常用于一些程序非正常运行的情况，并且检测到就调用回调函数并立即退出。所以我们不需要获取短路选项的值。对于一般选项，你可以用模板函数
@@ -168,25 +205,24 @@ args.get_option<bool>("-o");
 命名参数和位置参数在设置和解析阶段有区别，但是在获取结果时没有区别，所以统一使用
 `get_argument<T>`获取，同样提供一些类似`get_argument_int`的别名。
 
-### 保存各种参数的结果
-
-使用
-```c++
-void print_as_ini(std::ostream &os, bool comments = false)
-```
-函数打印解析结果为`ini`文件格式。如果`comments == true`则将帮助信息作为注释打印。
 
 ## 拓展
 
-你可以拓展支持你想要的类型。只要你实现了如下三个模板特化（均在命名空间`util`下）
+你可以拓展支持你想要的类型。只要你实现了如下两个模板特化（均在命名空间`util`下）
 ```c++
-template <> inline std::string type_string<T>() {return "you type name"};
-template <> inline std::string to_string<T>(const T &value) {...}
-template <> inline T parse_value<T>(const std::string &str) {...}
+template <> inline std::string_view type_name<T>() {return "you type name"};
+template <> inline std::optional<T> try_parse<T>(const std::string &str) {...}
 ```
 然后使用`add_option<T>`等模板函数就可以了。我前面给出代码中，`util::StepRange`就是我自定义的一个类型。
 
-其中`to_string`默认实现是符号重载了`std::ostream`的`<<`，如果你有可以不用特化。`parse_value`默认实现是符号重载了`std::istream`的`>>`，如果你有，并且有默认构造函数，那么也可以不用特化。
+其中`try_parse`默认实现是符号重载了`std::istream`的`>>`，如果你有，并且有默认构造函数，那么可以不用特化。
+
+## 错误处理
+
+我将调用`parse(argc, argv)`之前称的错误称为`build_error`；`parse`中的错误称为`parse_error`，之后的错误称为`get_error`。
+默认处理方式是打印错误并退出。你可以用`use_color_error()`给出一点红色，或使用`use_exception_error()`启用异常（`throw std::runtime_error()`）。
+
+你也可以自定义错误处理方法，使用`reg_build_error(std::funtion<void(const std::string &)> error_handler)`注册错误处理方法。
 
 
 ## 相似的项目
